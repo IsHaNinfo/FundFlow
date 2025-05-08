@@ -4,6 +4,7 @@ import bodyParser from "body-parser";
 import sequelize from "./config/db.connection.js";
 import errorHandler from "./middleware/errorHandler.js";
 import customerRoute from "./routes/customer.route.js";
+import adminRoute from "./routes/admin.route.js";
 import swaggerUi from 'swagger-ui-express';
 import { specs } from './config/swagger.js';
 
@@ -26,6 +27,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 
 // API Routes - All API routes will be prefixed with /api
 app.use("/api/customer", customerRoute);
+app.use("/api/admin", adminRoute);
 
 // Swagger Documentation Route - Separate from API routes
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(specs, {
