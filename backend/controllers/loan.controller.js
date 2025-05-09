@@ -3,7 +3,11 @@ import ApiResponse from "../utils/ApiResponse.js";
 
 export const createLoan = async (req, res, next) => {
     try {
-        const loanData = req.body;
+        const loanData = {
+            ...req.body,
+            userId: req.user.id // Get userId from authenticated user
+        };
+        console.log("loanData",req.user.id);
         const newLoan = await loanService.createLoan(loanData);
         res.status(ApiResponse.HTTP_STATUS.CREATED).json(
             ApiResponse.success(newLoan, 'Loan created successfully')
@@ -61,12 +65,12 @@ export const deleteLoan = async (req, res, next) => {
     }
 };
 
-export const getLoansByCustomerId = async (req, res, next) => {
+export const getLoansByUserId = async (req, res, next) => {
     try {
-        const { customerId } = req.params;
-        const loans = await loanService.getLoansByCustomerId(customerId);
+        const userId = req.user.id; // Get userId from authenticated user
+        const loans = await loanService.getLoansByUserId(userId);
         res.status(ApiResponse.HTTP_STATUS.OK).json(
-            ApiResponse.success(loans, 'Customer loans retrieved successfully')
+            ApiResponse.success(loans, 'User loans retrieved successfully')
         );
     } catch (error) {
         next(error);

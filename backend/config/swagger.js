@@ -14,12 +14,8 @@ const options = {
         },
         servers: [
             {
-                url: process.env.API_URL || 'http://localhost:8000',
-                description: 'API Server'
-            },
-            {
-                url: process.env.SWAGGER_URL || 'http://localhost:8000',
-                description: 'Swagger Documentation Server'
+                url: 'http://localhost:8000',
+                description: 'Development server'
             }
         ],
         components: {
@@ -54,7 +50,7 @@ const options = {
                             format: 'float',
                             example: 50000
                         },
-                        
+
                     }
                 },
                 Error: {
@@ -75,21 +71,71 @@ const options = {
                     }
                 }
             },
+            securitySchemes: {
+                adminAuth: {
+                    type: 'http',
+                    scheme: 'bearer',
+                    bearerFormat: 'JWT',
+                    description: 'Admin token for admin-only endpoints'
+                },
+                userAuth: {
+                    type: 'http',
+                    scheme: 'bearer',
+                    bearerFormat: 'JWT',
+                    description: 'User token for customer endpoints'
+                }
+            },
             responses: {
                 UnauthorizedError: {
                     description: 'Access token is missing or invalid',
                     content: {
                         'application/json': {
                             schema: {
-                                $ref: '#/components/schemas/Error'
+                                type: 'object',
+                                properties: {
+                                    status: {
+                                        type: 'number',
+                                        example: 401
+                                    },
+                                    message: {
+                                        type: 'string',
+                                        example: 'Not authenticated or invalid token'
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                ForbiddenError: {
+                    description: 'Not authorized to access this resource',
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    status: {
+                                        type: 'number',
+                                        example: 403
+                                    },
+                                    message: {
+                                        type: 'string',
+                                        example: 'Not authorized. Only admins can access this resource.'
+                                    }
+                                }
                             }
                         }
                     }
                 }
             }
-        }
+        },
+        security: [
+            {
+                adminAuth: [],
+                userAuth: []
+            }
+        ]
     },
-    apis: ['./routes/*.js', './controllers/*.js'], // Path to the API docs
+    apis: ['./routes/*.js'], // Path to the API routes
 };
 
 export const specs = swaggerJsdoc(options); 

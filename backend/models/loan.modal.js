@@ -1,6 +1,6 @@
 import { DataTypes } from "sequelize";
 import sequelize from "../config/db.connection.js";
-import { Customer } from "./customer.modal.js";
+import { User } from "./user.modal.js";
 
 export const Loan = sequelize.define(
     "Loan",
@@ -13,10 +13,16 @@ export const Loan = sequelize.define(
         loanAmount: {
             type: DataTypes.DECIMAL(10, 2),
             allowNull: false,
+            validate: {
+                min: 0
+            }
         },
         durationMonths: {
             type: DataTypes.INTEGER,
             allowNull: false,
+            validate: {
+                min: 1
+            }
         },
         purpose: {
             type: DataTypes.STRING,
@@ -25,32 +31,44 @@ export const Loan = sequelize.define(
         monthlyIncome: {
             type: DataTypes.DECIMAL(10, 2),
             allowNull: false,
+            validate: {
+                min: 0
+            }
         },
         existingLoans: {
             type: DataTypes.DECIMAL(10, 2),
             allowNull: false,
+            validate: {
+                min: 0
+            }
         },
-        customerId: {
+        userId: {
             type: DataTypes.UUID,
             allowNull: false,
             references: {
-                model: Customer,
+                model: User,
                 key: 'id'
             }
+        },
+        status: {
+            type: DataTypes.ENUM('pending', 'approved', 'rejected'),
+            defaultValue: 'pending',
+            allowNull: false
         }
     },
     {
         tableName: "Loan",
+        timestamps: true
     }
 );
 
 // Define the relationship
-Loan.belongsTo(Customer, {
-    foreignKey: 'customerId',
-    as: 'customer'
+Loan.belongsTo(User, {
+    foreignKey: 'userId',
+    as: 'user'
 });
 
-Customer.hasMany(Loan, {
-    foreignKey: 'customerId',
+User.hasMany(Loan, {
+    foreignKey: 'userId',
     as: 'loans'
 });

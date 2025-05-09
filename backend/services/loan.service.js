@@ -1,11 +1,12 @@
 import * as loanRepo from "../repositories/loan.repo.js";
+import * as userRepo from "../repositories/user.repo.js";
 import AppError from "../utils/AppError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 
 export const createLoan = async (loanData) => {
     try {
         // Validate required fields
-        const requiredFields = ['loanAmount', 'durationMonths', 'purpose', 'monthlyIncome', 'existingLoans', 'customerId'];
+        const requiredFields = ['loanAmount', 'durationMonths', 'purpose', 'monthlyIncome', 'existingLoans', 'userId'];
         const missingFields = requiredFields.filter(field => !loanData[field]);
 
         if (missingFields.length > 0) {
@@ -13,6 +14,15 @@ export const createLoan = async (loanData) => {
                 `Missing required fields: ${missingFields.join(', ')}`,
                 ApiResponse.HTTP_STATUS.BAD_REQUEST
             );
+        }
+
+        // Check if user exists and is a customer
+        const user = await userRepo.getUserById(loanData.userId);
+        if (!user) {
+            throw new AppError('User not found', ApiResponse.HTTP_STATUS.NOT_FOUND);
+        }
+        if (user.role !== 'customer') {
+            throw new AppError('Only customers can apply for loans', ApiResponse.HTTP_STATUS.FORBIDDEN);
         }
 
         // Validate numeric fields
@@ -95,7 +105,7 @@ export const updateLoan = async (id, updateData) => {
         }
 
         // Define allowed fields for update
-        const allowedFields = ['loanAmount', 'durationMonths', 'purpose', 'monthlyIncome', 'existingLoans'];
+        const allowedFields = ['loanAmount', 'durationMonths', 'purpose', 'monthlyIncome', 'existingLoans', 'status'];
 
         // Filter out any fields that are not allowed
         const filteredUpdateData = Object.keys(updateData)
@@ -142,6 +152,15 @@ export const updateLoan = async (id, updateData) => {
             );
         }
 
+        // Validate status if being updated
+        if (filteredUpdateData.status !== undefined &&
+            !['pending', 'approved', 'rejected'].includes(filteredUpdateData.status)) {
+            throw new AppError(
+                'Invalid loan status',
+                ApiResponse.HTTP_STATUS.BAD_REQUEST
+            );
+        }
+
         const updatedLoan = await loanRepo.updateLoan(id, filteredUpdateData);
         return updatedLoan;
     } catch (error) {
@@ -161,8 +180,9 @@ export const deleteLoan = async (id) => {
         if (!loan) {
             throw new AppError('Loan not found', ApiResponse.HTTP_STATUS.NOT_FOUND);
         }
-        await loanRepo.deleteLoan(id);
-        return true;
+
+        const result = await loanRepo.deleteLoan(id);
+        return result;
     } catch (error) {
         if (error instanceof AppError) {
             throw error;
@@ -174,13 +194,25 @@ export const deleteLoan = async (id) => {
     }
 };
 
-export const getLoansByCustomerId = async (customerId) => {
+export const getLoansByUserId = async (userId) => {
     try {
-        const loans = await loanRepo.getLoansByCustomerId(customerId);
+        // Check if user exists and is a customer
+        const user = await userRepo.getUserById(userId);
+        if (!user) {
+            throw new AppError('User not found', ApiResponse.HTTP_STATUS.NOT_FOUND);
+        }
+        if (user.role !== 'customer') {
+            throw new AppError('Only customers can have loans', ApiResponse.HTTP_STATUS.FORBIDDEN);
+        }
+
+        const loans = await loanRepo.getLoansByUserId(userId);
         return loans;
     } catch (error) {
+        if (error instanceof AppError) {
+            throw error;
+        }
         throw new AppError(
-            'Error retrieving customer loans',
+            'Error retrieving user loans',
             ApiResponse.HTTP_STATUS.INTERNAL_SERVER_ERROR
         );
     }

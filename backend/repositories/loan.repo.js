@@ -1,5 +1,5 @@
 import { Loan } from "../models/loan.modal.js";
-import { Customer } from "../models/customer.modal.js";
+import { User } from "../models/user.modal.js";
 
 export const createLoan = async (loanData) => {
     const newLoan = await Loan.create(loanData);
@@ -7,16 +7,25 @@ export const createLoan = async (loanData) => {
 };
 
 export const getLoan = async (id) => {
-    console.log(id);
     const loan = await Loan.findOne({
         where: { id },
+        include: [{
+            model: User,
+            as: 'user',
+            attributes: ['firstName', 'lastName', 'email', 'phoneNumber']
+        }]
     });
-    console.log(loan);
     return loan;
 };
 
 export const getAllLoans = async () => {
-    const loans = await Loan.findAll({});
+    const loans = await Loan.findAll({
+        include: [{
+            model: User,
+            as: 'user',
+            attributes: ['firstName', 'lastName', 'email', 'phoneNumber']
+        }]
+    });
     return loans;
 };
 
@@ -27,7 +36,11 @@ export const updateLoan = async (id, updateData) => {
     if (updated) {
         const updatedLoan = await Loan.findOne({
             where: { id },
-
+            include: [{
+                model: User,
+                as: 'user',
+                attributes: ['firstName', 'lastName', 'email', 'phoneNumber']
+            }]
         });
         return updatedLoan;
     }
@@ -41,21 +54,19 @@ export const deleteLoan = async (id) => {
     return deleted;
 };
 
-export const getLoansByCustomerId = async (customerId) => {
+export const getLoansByUserId = async (userId) => {
     try {
-        console.log('Customer ID:', customerId);
         const loans = await Loan.findAll({
-            where: { customerId },
+            where: { userId },
             include: [{
-                model: Customer,
-                as: 'customer',
+                model: User,
+                as: 'user',
                 attributes: ['firstName', 'lastName', 'email', 'phoneNumber']
             }]
         });
-        console.log('Found loans:', loans);
         return loans;
     } catch (error) {
-        console.error('Error in getLoansByCustomerId:', error);
+        console.error('Error in getLoansByUserId:', error);
         throw error;
     }
 };

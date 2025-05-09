@@ -1,14 +1,74 @@
 import express from "express";
 import * as loanController from "../controllers/loan.controller.js";
+import { authenticate, authorize } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
 /**
  * @swagger
- * /api/loan:
+ * components:
+ *   securitySchemes:
+ *     bearerAuth:
+ *       type: http
+ *       scheme: bearer
+ *       bearerFormat: JWT
+ *       description: Enter your JWT token in the format: Bearer <token>
+ *   schemas:
+ *     Loan:
+ *       type: object
+ *       required:
+ *         - loanAmount
+ *         - durationMonths
+ *         - purpose
+ *         - monthlyIncome
+ *         - existingLoans
+ *       properties:
+ *         id:
+ *           type: string
+ *           format: uuid
+ *           description: The auto-generated UUID of the loan
+ *         loanAmount:
+ *           type: number
+ *           format: float
+ *           minimum: 0
+ *           description: Amount of the loan
+ *         durationMonths:
+ *           type: integer
+ *           minimum: 1
+ *           description: Duration of the loan in months
+ *         purpose:
+ *           type: string
+ *           description: Purpose of the loan
+ *         monthlyIncome:
+ *           type: number
+ *           format: float
+ *           minimum: 0
+ *           description: Monthly income of the applicant
+ *         existingLoans:
+ *           type: number
+ *           format: float
+ *           minimum: 0
+ *           description: Total amount of existing loans
+ *         status:
+ *           type: string
+ *           enum: [pending, approved, rejected]
+ *           default: pending
+ *           description: Status of the loan application
+ *         userId:
+ *           type: string
+ *           format: uuid
+ *           description: ID of the customer who applied for the loan
+ */
+
+/**
+ * @swagger
+ * /api/loans:
  *   post:
- *     summary: Create a new loan
+ *     summary: Create a new loan application (Customer only)
  *     tags: [Loans]
+ *     security:
+ *       - userAuth: []
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -21,7 +81,6 @@ const router = express.Router();
  *               - purpose
  *               - monthlyIncome
  *               - existingLoans
- *               - customerId
  *             properties:
  *               loanAmount:
  *                 type: number
@@ -40,35 +99,59 @@ const router = express.Router();
  *                 type: number
  *                 format: float
  *                 minimum: 0
- *               customerId:
- *                 type: string
- *                 format: uuid
  *     responses:
  *       201:
- *         description: Loan created successfully
+ *         description: Loan application created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Loan'
  *       400:
  *         description: Invalid input data
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Not authorized (Customer role required)
  */
-router.post('/', loanController.createLoan);
+router.post(
+    '/',
+    authenticate,
+    authorize('customer'),
+    loanController.createLoan
+);
 
 /**
  * @swagger
- * /api/loan:
+ * /api/loans:
  *   get:
- *     summary: Get all loans
+ *     summary: Get all loans (Admin only)
  *     tags: [Loans]
+ *     security:
+ *       - bearerAuth: []
+ *       - userAuth: []
  *     responses:
  *       200:
  *         description: List of all loans
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Not authorized
  */
-router.get('/', loanController.getAllLoans);
+router.get(
+    '/',
+    authenticate,
+    authorize('admin'),
+    loanController.getAllLoans
+);
 
 /**
  * @swagger
- * /api/loan/{id}:
+ * /api/loans/{id}:
  *   get:
  *     summary: Get loan by ID
  *     tags: [Loans]
+ *     security:
+ *       - adminAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -79,17 +162,25 @@ router.get('/', loanController.getAllLoans);
  *     responses:
  *       200:
  *         description: Loan details
+ *       401:
+ *         description: Not authenticated
  *       404:
  *         description: Loan not found
  */
-router.get('/:id', loanController.getLoan);
+router.get(
+    '/:id',
+    authenticate,
+    loanController.getLoan
+);
 
 /**
  * @swagger
- * /api/loan/{id}:
+ * /api/loans/{id}:
  *   put:
- *     summary: Update loan
+ *     summary: Update loan (Admin only)
  *     tags: [Loans]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -104,37 +195,35 @@ router.get('/:id', loanController.getLoan);
  *           schema:
  *             type: object
  *             properties:
- *               loanAmount:
- *                 type: number
- *                 format: float
- *                 minimum: 0
- *               durationMonths:
- *                 type: integer
- *                 minimum: 1
- *               purpose:
+ *               status:
  *                 type: string
- *               monthlyIncome:
- *                 type: number
- *                 format: float
- *                 minimum: 0
- *               existingLoans:
- *                 type: number
- *                 format: float
- *                 minimum: 0
+ *                 enum: [pending, approved, rejected]
  *     responses:
  *       200:
  *         description: Loan updated successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Not authorized
  *       404:
  *         description: Loan not found
  */
-router.put('/:id', loanController.updateLoan);
+router.put(
+    '/:id',
+    authenticate,
+    authorize('customer'),
+    loanController.updateLoan
+);
 
 /**
  * @swagger
- * /api/loan/{id}:
+ * /api/loans/{id}:
  *   delete:
- *     summary: Delete loan
+ *     summary: Delete loan (Admin only)
  *     tags: [Loans]
+ *     security:
+ *       - bearerAuth: []
+ *       - adminAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -145,30 +234,42 @@ router.put('/:id', loanController.updateLoan);
  *     responses:
  *       200:
  *         description: Loan deleted successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Not authorized (Admin role required)
  *       404:
  *         description: Loan not found
  */
-router.delete('/:id', loanController.deleteLoan);
+router.delete(
+    '/:id',
+    authenticate,
+    authorize('admin'),
+    loanController.deleteLoan
+);
 
 /**
  * @swagger
- * /api/loan/customer/{customerId}:
+ * /api/loans/my-loans:
  *   get:
- *     summary: Get all loans for a customer
+ *     summary: Get current user's loans
  *     tags: [Loans]
- *     parameters:
- *       - in: path
- *         name: customerId
- *         required: true
- *         schema:
- *           type: string
- *           format: uuid
+ *     security:
+ *       - bearerAuth: []
+ *       - userAuth: []
  *     responses:
  *       200:
- *         description: List of customer's loans
- *       404:
- *         description: Customer not found
+ *         description: List of user's loans
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Not authorized
  */
-router.get('/customer/:customerId', loanController.getLoansByCustomerId);
+router.get(
+    '/my-loans',
+    authenticate,
+    authorize('customer'),
+    loanController.getLoansByUserId
+);
 
 export default router;

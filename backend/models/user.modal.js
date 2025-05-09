@@ -1,8 +1,8 @@
 import { DataTypes } from "sequelize";
 import sequelize from "../config/db.connection.js";
 
-export const Customer = sequelize.define(
-    "Customer",
+export const User = sequelize.define(
+    "User",
     {
         id: {
             type: DataTypes.UUID,
@@ -31,16 +31,16 @@ export const Customer = sequelize.define(
             type: DataTypes.STRING,
             allowNull: false,
         },
-        monthlyIncome: {
-            type: DataTypes.DECIMAL(10, 2),
-            allowNull: false,
+        password: {
+            type: DataTypes.STRING,
+            allowNull: false
         },
-        creditScore: {
-            type: DataTypes.DECIMAL(10, 2),
-            allowNull: true,
+        role: {
+            type: DataTypes.ENUM("admin", "customer"),
+            allowNull: false,
         },
     },
     {
-        tableName: "Customer",
+        tableName: "User",
     }
 );
