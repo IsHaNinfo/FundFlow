@@ -12,7 +12,7 @@ const router = express.Router();
  *       type: http
  *       scheme: bearer
  *       bearerFormat: JWT
- *       description: Enter your JWT token in the format: Bearer <token>
+ *       description: "Enter your JWT token in the format: Bearer <token>"
  *   schemas:
  *     Loan:
  *       type: object
@@ -67,7 +67,6 @@ const router = express.Router();
  *     summary: Create a new loan application (Customer only)
  *     tags: [Loans]
  *     security:
- *       - userAuth: []
  *       - bearerAuth: []
  *     requestBody:
  *       required: true
@@ -102,10 +101,6 @@ const router = express.Router();
  *     responses:
  *       201:
  *         description: Loan application created successfully
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Loan'
  *       400:
  *         description: Invalid input data
  *       401:
@@ -128,14 +123,13 @@ router.post(
  *     tags: [Loans]
  *     security:
  *       - bearerAuth: []
- *       - userAuth: []
  *     responses:
  *       200:
  *         description: List of all loans
  *       401:
  *         description: Not authenticated
  *       403:
- *         description: Not authorized
+ *         description: Not authorized (Admin role required)
  */
 router.get(
     '/',
@@ -148,10 +142,10 @@ router.get(
  * @swagger
  * /api/loans/{id}:
  *   get:
- *     summary: Get loan by ID
+ *     summary: Get loan by ID (Admin or loan owner)
  *     tags: [Loans]
  *     security:
- *       - adminAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -164,12 +158,15 @@ router.get(
  *         description: Loan details
  *       401:
  *         description: Not authenticated
+ *       403:
+ *         description: Not authorized
  *       404:
  *         description: Loan not found
  */
 router.get(
     '/:id',
     authenticate,
+    authorize('admin'),
     loanController.getLoan
 );
 
@@ -177,7 +174,7 @@ router.get(
  * @swagger
  * /api/loans/{id}:
  *   put:
- *     summary: Update loan (Admin only)
+ *     summary: Update loan (Admin or loan owner)
  *     tags: [Loans]
  *     security:
  *       - bearerAuth: []
@@ -195,9 +192,16 @@ router.get(
  *           schema:
  *             type: object
  *             properties:
- *               status:
+ *               loanAmount:
+ *                 type: number
+ *               durationMonths:
+ *                 type: integer
+ *               purpose:
  *                 type: string
- *                 enum: [pending, approved, rejected]
+ *               monthlyIncome:
+ *                 type: number
+ *               existingLoans:
+ *                 type: number
  *     responses:
  *       200:
  *         description: Loan updated successfully
@@ -217,13 +221,56 @@ router.put(
 
 /**
  * @swagger
+ * /api/loans/{id}/status:
+ *   put:
+ *     summary: Update loan status (Admin only)
+ *     tags: [Loans]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - status
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [pending, approved, rejected]
+ *     responses:
+ *       200:
+ *         description: Loan status updated successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Not authorized (Admin role required)
+ *       404:
+ *         description: Loan not found
+ */
+router.put(
+    '/:id/status',
+    authenticate,
+    authorize('admin'),
+    loanController.updateLoanStatus
+);
+
+/**
+ * @swagger
  * /api/loans/{id}:
  *   delete:
  *     summary: Delete loan (Admin only)
  *     tags: [Loans]
  *     security:
  *       - bearerAuth: []
- *       - adminAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -256,7 +303,6 @@ router.delete(
  *     tags: [Loans]
  *     security:
  *       - bearerAuth: []
- *       - userAuth: []
  *     responses:
  *       200:
  *         description: List of user's loans

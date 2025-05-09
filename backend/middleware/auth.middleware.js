@@ -10,7 +10,6 @@ export const authenticate = async (req, res, next) => {
         }
         const token = authHeader.split(' ')[1];
         const decoded = verifyToken(token);
-        console.log("authHeader", token);
 
         req.user = decoded;
         next();

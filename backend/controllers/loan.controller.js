@@ -7,7 +7,6 @@ export const createLoan = async (req, res, next) => {
             ...req.body,
             userId: req.user.id // Get userId from authenticated user
         };
-        console.log("loanData",req.user.id);
         const newLoan = await loanService.createLoan(loanData);
         res.status(ApiResponse.HTTP_STATUS.CREATED).json(
             ApiResponse.success(newLoan, 'Loan created successfully')
@@ -44,7 +43,7 @@ export const updateLoan = async (req, res, next) => {
     try {
         const { id } = req.params;
         const updateData = req.body;
-        const updatedLoan = await loanService.updateLoan(id, updateData);
+        const updatedLoan = await loanService.updateLoanDetails(id, updateData);
         res.status(ApiResponse.HTTP_STATUS.OK).json(
             ApiResponse.success(updatedLoan, 'Loan updated successfully')
         );
@@ -72,6 +71,39 @@ export const getLoansByUserId = async (req, res, next) => {
         res.status(ApiResponse.HTTP_STATUS.OK).json(
             ApiResponse.success(loans, 'User loans retrieved successfully')
         );
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const updateLoanStatus = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+        const adminId = req.user.id; // Assuming user info is attached by auth middleware
+
+        // Validate status in request body
+        if (!status) {
+            return res.status(ApiResponse.HTTP_STATUS.BAD_REQUEST).json(
+                new ApiResponse(
+                    ApiResponse.HTTP_STATUS.BAD_REQUEST,
+                    null,
+                    'Status is required'
+                )
+            );
+        }
+
+        const updatedLoan = await loanService.updateLoanStatus(id, status, adminId);
+        console.log("updatedLoan", updatedLoan);
+        return res.status(ApiResponse.HTTP_STATUS.CREATED).json(
+
+            {
+                status: ApiResponse.HTTP_STATUS.OK,
+                data: updatedLoan,
+                message: "Loan status updated successfully"
+            }
+        );
+
     } catch (error) {
         next(error);
     }

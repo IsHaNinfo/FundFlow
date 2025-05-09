@@ -8,6 +8,7 @@ import userRoute from "./routes/user.routes.js";
 import customerProfileRoute from "./routes/customerProfile.routes.js";
 import swaggerUi from 'swagger-ui-express';
 import { specs } from './config/swagger.js';
+import { connectMongoDB } from './config/mongodb.connection.js';
 
 const app = express();
 const PORT = process.env.PORT || 8000;
@@ -46,6 +47,7 @@ sequelize
   .catch((error) => {
     console.error("Unable to connect to the database: ", error);
   });
+connectMongoDB();
 
 // Table creation
 sequelize

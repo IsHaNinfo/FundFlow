@@ -6,27 +6,21 @@ import ApiResponse from "../utils/ApiResponse.js";
 export const createCustomerProfile = async (userId, profileData) => {
     try {
         // Check if user exists and is a customer
-        console.log(userId, profileData);
         const user = await userRepo.getUserById(userId);
         if (!user) {
             throw new AppError('User not found', ApiResponse.HTTP_STATUS.NOT_FOUND);
         }
-        console.log(user);
         if (user.role !== 'customer') {
             throw new AppError('User is not a customer', ApiResponse.HTTP_STATUS.BAD_REQUEST);
         }
-        console.log("profileDatasss", user);
 
         // Check if profile already exists
         const existingProfile = await customerProfileRepo.getCustomerProfileByUserId(userId);
         if (existingProfile) {
             throw new AppError('Customer profile already exists', ApiResponse.HTTP_STATUS.BAD_REQUEST);
         }
-        console.log("profileDateeea",existingProfile);
 
-        // Generate random credit score between 300-850
         const creditScore = Math.floor(Math.random() * (850 - 300 + 1)) + 300;
-        console.log("wwww",userId, profileData, creditScore);
         return await customerProfileRepo.createCustomerProfile({
             userId,
             ...profileData,
@@ -45,7 +39,6 @@ export const getCustomerProfileById = async (id) => {
         if (!profile) {
             throw new AppError('Customer profile not found', ApiResponse.HTTP_STATUS.NOT_FOUND);
         }
-        console.log("profile",profile);
         return profile;
     } catch (error) {
         if (error instanceof AppError) throw error;

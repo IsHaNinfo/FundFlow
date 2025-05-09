@@ -4,7 +4,6 @@ import ApiResponse from "../utils/ApiResponse.js";
 export const createUser = async (req, res, next) => {
     try {
         const user = await userService.createUser(req.body);
-        console.log(user);
         res.status(ApiResponse.HTTP_STATUS.CREATED).json(
             ApiResponse.success(user, 'User created successfully')
         );

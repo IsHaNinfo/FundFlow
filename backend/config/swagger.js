@@ -72,17 +72,11 @@ const options = {
                 }
             },
             securitySchemes: {
-                adminAuth: {
+                bearerAuth: {
                     type: 'http',
                     scheme: 'bearer',
                     bearerFormat: 'JWT',
-                    description: 'Admin token for admin-only endpoints'
-                },
-                userAuth: {
-                    type: 'http',
-                    scheme: 'bearer',
-                    bearerFormat: 'JWT',
-                    description: 'User token for customer endpoints'
+                    description: 'JWT token for authentication'
                 }
             },
             responses: {
@@ -130,8 +124,7 @@ const options = {
         },
         security: [
             {
-                adminAuth: [],
-                userAuth: []
+                bearerAuth: []
             }
         ]
     },

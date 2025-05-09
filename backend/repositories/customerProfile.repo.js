@@ -2,10 +2,8 @@ import { CustomerProfile } from "../models/customerProfile.model.js";
 import { User } from "../models/user.modal.js";
 
 export const createCustomerProfile = async (profileData) => {
-    console.log("profileData received:", profileData.userId);
     try {
         const result = await CustomerProfile.create(profileData);
-        console.log("Created profile:", result.toJSON());
         return result;
     } catch (error) {
         console.error("Error creating profile:", error.message);

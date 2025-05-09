@@ -50,9 +50,25 @@ export const Loan = sequelize.define(
                 key: 'id'
             }
         },
+        score: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            validate: {
+                min: 0
+            }
+        },
+        emi: {
+            type: DataTypes.DECIMAL(10, 2),
+            allowNull: false,
+            defaultValue: 0
+        },
         status: {
             type: DataTypes.ENUM('pending', 'approved', 'rejected'),
             defaultValue: 'pending',
+            allowNull: false
+        },
+        recommandations: {
+            type: DataTypes.STRING,
             allowNull: false
         }
     },
