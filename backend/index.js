@@ -3,30 +3,34 @@ import cors from "cors";
 import bodyParser from "body-parser";
 import sequelize from "./config/db.connection.js";
 import errorHandler from "./middleware/errorHandler.js";
-import customerRoute from "./routes/customer.route.js";
+import loanRoute from "./routes/loan.route.js";
+import userRoute from "./routes/user.routes.js";
+import customerProfileRoute from "./routes/customerProfile.routes.js";
 import swaggerUi from 'swagger-ui-express';
 import { specs } from './config/swagger.js';
+import { connectMongoDB } from './config/mongodb.connection.js';
 
 const app = express();
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 8000;
+
+// CORS configuration
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
 
 // Middleware
 app.use(express.json({ limit: "150mb" }));
-app.use(express.urlencoded({ limit: "150mb" }));
-
-// CORS configuration
-app.use(
-  cors({
-    origin: "*",
-    methods: ["GET", "POST", "DELETE", "PUT", "PATCH"],
-  })
-);
+app.use(express.urlencoded({ extended: true, limit: "150mb" }));
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.urlencoded({ extended: true }));
 
 // API Routes - All API routes will be prefixed with /api
-app.use("/api/customer", customerRoute);
-
+app.use("/api/customer-profiles", customerProfileRoute);
+app.use("/api/loans", loanRoute);
+app.use("/api/users", userRoute);
 // Swagger Documentation Route - Separate from API routes
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(specs, {
   explorer: true,
@@ -43,6 +47,7 @@ sequelize
   .catch((error) => {
     console.error("Unable to connect to the database: ", error);
   });
+connectMongoDB();
 
 // Table creation
 sequelize

@@ -1,9 +1,14 @@
 import { DataTypes } from "sequelize";
 import sequelize from "../config/db.connection.js";
 
-export const Customer = sequelize.define(
-    "Customer",
+export const User = sequelize.define(
+    "User",
     {
+        id: {
+            type: DataTypes.UUID,
+            defaultValue: DataTypes.UUIDV4,
+            primaryKey: true
+        },
         firstName: {
             type: DataTypes.STRING,
             allowNull: false,
@@ -15,25 +20,27 @@ export const Customer = sequelize.define(
         email: {
             type: DataTypes.STRING,
             allowNull: false,
+            unique: true
         },
         nic: {
             type: DataTypes.STRING,
             allowNull: false,
+            unique: true
         },
         phoneNumber: {
             type: DataTypes.STRING,
             allowNull: false,
         },
-        monthlyIncome: {
-            type: DataTypes.FLOAT,
-            allowNull: false,
+        password: {
+            type: DataTypes.STRING,
+            allowNull: false
         },
-        creditScore: {
-            type: DataTypes.FLOAT,
-            allowNull: true,
+        role: {
+            type: DataTypes.ENUM("admin", "customer"),
+            allowNull: false,
         },
     },
     {
-        tableName: "Customer",
+        tableName: "User",
     }
 );
