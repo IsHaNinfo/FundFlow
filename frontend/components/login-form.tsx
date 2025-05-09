@@ -35,9 +35,10 @@ export function LoginForm({
                 email,
                 password,
             });
+            console.log("sss",res.data.data.token)
             // Optionally, store token in localStorage or cookie
             // localStorage.setItem("token", res.data.token);
-            localStorage.setItem("token", res.data.token);
+            localStorage.setItem("token", res.data.data.token);
 
             // Redirect to dashboard
             router.push("/dashboard");

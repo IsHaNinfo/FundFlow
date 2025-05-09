@@ -359,7 +359,38 @@ router.post("/login", userController.login);
  *         $ref: '#/components/responses/UnauthorizedError'
  */
 router.get("/profile", authenticate, userController.getUserById);
-
+/**
+ * @swagger
+ * /api/users/{id}:
+ *   get:
+ *     summary: Get user by ID
+ *     tags: [Admin, Customer]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         required: true
+ *         description: User ID
+ *     responses:
+ *       200:
+ *         description: User found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: number
+ *                   example: 200
+ *                 data:
+ *                   $ref: '#/components/schemas/User'
+ *                 message:
+ *                   type: string
+ *                   example: User retrieved successfully
+ */
+router.get("/:id", userController.getUserById);
 // Protected routes
 router.use(authenticate);
 
@@ -392,41 +423,7 @@ router.use(authenticate);
  */
 router.get("/", authorize('admin'), userController.getAllUsers);
 
-/**
- * @swagger
- * /api/users/{id}:
- *   get:
- *     summary: Get user by ID
- *     tags: [Admin, Customer]
- *     security:
- *       - adminAuth: []  # Admin token
- *       - userAuth: []   # Customer token
- *     parameters:
- *       - in: path
- *         name: id
- *         schema:
- *           type: string
- *           format: uuid
- *         required: true
- *         description: User ID
- *     responses:
- *       200:
- *         description: User found
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: number
- *                   example: 200
- *                 data:
- *                   $ref: '#/components/schemas/User'
- *                 message:
- *                   type: string
- *                   example: User retrieved successfully
- */
-router.get("/:id", userController.getUserById);
+
 
 /**
  * @swagger
