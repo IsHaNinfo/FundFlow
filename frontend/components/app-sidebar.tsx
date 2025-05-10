@@ -18,7 +18,7 @@ import {
   IconSettings,
   IconUsers,
 } from "@tabler/icons-react"
-
+import { jwtDecode } from "jwt-decode"
 import { NavDocuments } from "@/components/nav-documents"
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
@@ -33,88 +33,59 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 
-const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
-  navMain: [
+interface DecodedToken {
+  id: string
+  email: string
+  role: string
+  iat: number
+  exp: number
+}
+
+export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const [userRole, setUserRole] = React.useState<string>("");
+
+  React.useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const decoded = jwtDecode<DecodedToken>(token);
+        setUserRole(decoded.role);
+      } catch (error) {
+        console.error('Error decoding token:', error);
+      }
+    }
+  }, []);
+
+  // Admin navigation items
+  const adminNavItems = [
     {
       title: "Customers",
-      url: "/customers",
+      url: "/admin/customers",
       icon: IconUsers,
     },
     {
       title: "Loans",
-      url: "/loans",
+      url: "/admin/loans",
       icon: IconListDetails,
     },
+  ];
+
+  // Customer navigation items
+  const customerNavItems = [
     {
-      title: "Analytics",
-      url: "#",
+      title: "My Loans",
+      url: "/customer/loans",
       icon: IconChartBar,
     },
     {
-      title: "Projects",
-      url: "#",
+      title: "My Profile",
+      url: "/customer/profile",
       icon: IconFolder,
     },
-    {
-      title: "Team",
-      url: "#",
-      icon: IconUsers,
-    },
-  ],
-  navClouds: [
-    {
-      title: "Capture",
-      icon: IconCamera,
-      isActive: true,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Proposal",
-      icon: IconFileDescription,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Prompts",
-      icon: IconFileAi,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-  ],
-  navSecondary: [
+  ];
+
+  // Common secondary navigation items
+  const secondaryNavItems = [
     {
       title: "Settings",
       url: "#",
@@ -130,10 +101,8 @@ const data = {
       url: "#",
       icon: IconSearch,
     },
-  ],
-}
+  ];
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
@@ -152,11 +121,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+        <NavMain
+          items={userRole === 'admin' ? adminNavItems : customerNavItems}
+        />
+        <NavSecondary items={secondaryNavItems} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={{
+          name: userRole === 'admin' ? 'Admin User' : 'Customer User',
+          email: "user@example.com",
+          avatar: "/avatars/default.jpg",
+        }} />
       </SidebarFooter>
     </Sidebar>
   )

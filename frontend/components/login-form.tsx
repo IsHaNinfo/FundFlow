@@ -15,7 +15,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ErrorMessage } from "@/components/ui/error-message";
-
+import { jwtDecode } from "jwt-decode"
+interface DecodedToken {
+    id: string
+    email: string
+    role: string
+    iat: number
+    exp: number
+}
 export function LoginForm({
     className,
     ...props
@@ -35,13 +42,23 @@ export function LoginForm({
                 email,
                 password,
             });
-            console.log("sss",res.data.data.token)
-            // Optionally, store token in localStorage or cookie
-            // localStorage.setItem("token", res.data.token);
-            localStorage.setItem("token", res.data.data.token);
 
-            // Redirect to dashboard
-            router.push("/dashboard");
+            localStorage.setItem("token", res.data.data.token);
+            const token = localStorage.getItem('token')
+            if (!token) return
+
+            const decoded = jwtDecode<DecodedToken>(token)
+            const userRole = decoded.role
+            console.log(userRole)
+            // Role-based routing
+            if (userRole === 'admin') {
+                console.log("Redirecting to admin dashboard"); // Debug log
+                router.push("/admin/dashboard");
+            } else if (userRole === 'customer') {
+                router.push("/customer/dashboard");
+            } else {
+                setError("Invalid user role");
+            }
         } catch (err: any) {
             setError(
                 err.response?.data?.message ||

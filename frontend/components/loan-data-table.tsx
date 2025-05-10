@@ -186,8 +186,6 @@ export function LoanDataTable({ data }: { data: Loan[] }) {
                         setError("")
                         setIsLoading(true)
                         const updatedLoan = await loanApi.updateStatus(loan.id,  { status: newStatus })
-                        console.log(updatedLoan)
-                        toast.success("Loan status updated successfully")
                         setShowStatusModal(false)
                         // Update the table data with the new values
                         updateTableData({

@@ -1,4 +1,4 @@
-'use client'
+"use client";
 import { AppSidebar } from "@/components/app-sidebar"
 import { ChartAreaInteractive } from "@/components/chart-area-interactive"
 import { DataTable } from "@/components/data-table"
@@ -13,10 +13,9 @@ import { useEffect, useState } from "react"
 import axios from "axios"
 import { loanApi } from '@/services/api';
 
+import { RouteGuard } from '@/components/route-guard';
 
-
-const page = () => {
-
+export default function LoansPage() {
     type Loan = {
         id: string
         loanAmount: string
@@ -65,32 +64,32 @@ const page = () => {
         fetchCustomers()
     }, [])
     return (
-        <SidebarProvider
-            style={
-                {
-                    "--sidebar-width": "calc(var(--spacing) * 72)",
-                    "--header-height": "calc(var(--spacing) * 12)",
-                } as React.CSSProperties
-            }
-        >
-            <AppSidebar variant="inset" />
-            <SidebarInset>
-                <SiteHeader />
-                <div className="flex flex-1 flex-col">
-                    <div className="@container/main flex flex-1 flex-col gap-2">
-                        <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+        <RouteGuard allowedRoles={['admin']}>
+            <SidebarProvider
+                style={
+                    {
+                        "--sidebar-width": "calc(var(--spacing) * 72)",
+                        "--header-height": "calc(var(--spacing) * 12)",
+                    } as React.CSSProperties
+                }
+            >
+                <AppSidebar variant="inset" />
+                <SidebarInset>
+                    <SiteHeader />
+                    <div className="flex flex-1 flex-col">
+                        <div className="@container/main flex flex-1 flex-col gap-2">
+                            <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
 
-                        {loading ? (
-                                <div>Loading...</div>
-                            ) : (
-                                <LoanDataTable data={data} />
+                                {loading ? (
+                                    <div>Loading...</div>
+                                ) : (
+                                    <LoanDataTable data={data} />
 
-                            )}                        </div>
+                                )}                        </div>
+                        </div>
                     </div>
-                </div>
-            </SidebarInset>
-        </SidebarProvider>
-    )
-}
-
-export default page
+                </SidebarInset>
+            </SidebarProvider>
+        </RouteGuard>
+    );
+} 

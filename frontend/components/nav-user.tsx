@@ -47,6 +47,13 @@ interface DecodedToken {
   iat: number
   exp: number
 }
+interface NavUserProps {
+  user: {
+    name: string;
+    email: string;
+    avatar: string;
+  };
+}
 
 export function NavUser() {
   const { isMobile } = useSidebar()
