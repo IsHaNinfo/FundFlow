@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ErrorMessage } from "@/components/ui/error-message";
 import { jwtDecode } from "jwt-decode"
+import { customerApi } from "@/services/api"
 interface DecodedToken {
     id: string
     email: string
@@ -38,32 +39,39 @@ export function LoginForm({
         setLoading(true);
         setError("");
         try {
-            const res = await axios.post("http://localhost:8000/api/users/login", {
-                email,
-                password,
-            });
 
-            localStorage.setItem("token", res.data.data.token);
-            const token = localStorage.getItem('token')
-            if (!token) return
+            const res = await customerApi.login({email, password})
+            console.log(res)
+            // Store token once
+            const token = res.data.token;
+            localStorage.setItem("token", token);
 
-            const decoded = jwtDecode<DecodedToken>(token)
-            const userRole = decoded.role
+            // Decode token
+            const decoded = jwtDecode<DecodedToken>(token);
+            const userRole = decoded.role;
             console.log(userRole)
             // Role-based routing
-            if (userRole === 'admin') {
-                console.log("Redirecting to admin dashboard"); // Debug log
-                router.push("/admin/dashboard");
-            } else if (userRole === 'customer') {
-                router.push("/customer/dashboard");
-            } else {
-                setError("Invalid user role");
+            switch (userRole) {
+                case 'admin':
+                    router.push("/admin/dashboard");
+                    break;
+                case 'customer':
+                    router.push("/customer/profile");
+                    break;
+                default:
+                    setError("Invalid user role");
+                    break;
             }
         } catch (err: any) {
-            setError(
-                err.response?.data?.message ||
-                "Login failed. Please check your credentials."
-            );
+            console.log(err)
+            // More specific error handling
+            if (err.response?.status === 401) {
+                setError("Invalid email or password");
+            } else if (err.response?.data?.message) {
+                setError(err.response.data.message);
+            } else {
+                setError("Login failed. Please try again later.");
+            }
         } finally {
             setLoading(false);
         }

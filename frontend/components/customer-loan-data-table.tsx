@@ -104,26 +104,78 @@ type User = {
     phoneNumber: string
 }
 
-export function LoanDataTable({ data }: { data: Loan[] }) {
+export function CustomerLoanDataTable({ data }: { data: Loan[] }) {
     const [tableData, setTableData] = React.useState<Loan[]>(data)
+    const [showCreateModal, setShowCreateModal] = useState(false)
+    const [isLoading, setIsLoading] = useState(false)
+    const [serverError, setServerError] = useState<string>("")
+    const [formData, setFormData] = useState({
+        loanAmount: "",
+        durationMonths: "",
+        monthlyIncome: "",
+        purpose: "",
+        existingLoans: ""
+    })
 
     // Update local state when prop changes
     React.useEffect(() => {
         setTableData(data)
     }, [data])
 
-    // Add these helper functions
-    const updateTableData = (updatedLoan: Loan) => {
-        const newData = tableData.map(loan =>
-            loan.id === updatedLoan.id ? updatedLoan : loan
-        )
-        setTableData(newData)
+    const handleCreateLoan = async () => {
+        try {
+            setServerError("")
+            setIsLoading(true)
+
+            // Validate form data
+            if (!formData.loanAmount || !formData.durationMonths || !formData.monthlyIncome || !formData.purpose) {
+                setServerError("All fields are required")
+                return
+            }
+
+            // Validate numeric values
+            if (parseFloat(formData.loanAmount) <= 0 ||
+                parseInt(formData.durationMonths) <= 0 ||
+                parseFloat(formData.monthlyIncome) <= 0) {
+                setServerError("Please enter valid amounts and duration")
+                return
+            }
+
+            const newLoan = await loanApi.create({
+                ...formData,
+                loanAmount: parseFloat(formData.loanAmount),
+                durationMonths: parseInt(formData.durationMonths),
+                monthlyIncome: parseFloat(formData.monthlyIncome),
+                existingLoans: parseFloat(formData.existingLoans || "0")
+            })
+            // Update the table data by adding the new loan at the beginning
+            setTableData(prevData => [newLoan.data, ...prevData])
+
+            // Close modal and reset form
+            setShowCreateModal(false)
+            setFormData({
+                loanAmount: "",
+                durationMonths: "",
+                monthlyIncome: "",
+                purpose: "",
+                existingLoans: ""
+            })
+            toast.success("Loan created successfully")
+        } catch (error: any) {
+            if (error.response?.data?.message) {
+                setServerError(error.response.data.message)
+            } else if (error.message) {
+                setServerError(error.message)
+            } else {
+                setServerError("Failed to create loan. Please try again.")
+            }
+            console.error("Create loan error:", error)
+        } finally {
+            setIsLoading(false)
+        }
     }
 
-    const removeFromTableData = (loanId: string) => {
-        const newData = tableData.filter(loan => loan.id !== loanId)
-        setTableData(newData)
-    }
+
 
     // Define columns inside the component to access the functions
     const columns: ColumnDef<Loan>[] = [
@@ -131,7 +183,8 @@ export function LoanDataTable({ data }: { data: Loan[] }) {
             accessorKey: "user",
             header: "Customer Name",
             cell: ({ row }) => {
-                const user = row.getValue("user") as User
+                const user = row.getValue("user") as User | undefined
+                if (!user) return "N/A"
                 return `${user.firstName} ${user.lastName}`
             },
         },
@@ -139,25 +192,37 @@ export function LoanDataTable({ data }: { data: Loan[] }) {
             accessorKey: "loanAmount",
             header: "Loan Amount",
             cell: ({ row }) => {
-                const amount = parseFloat(row.getValue("loanAmount"))
-                const formatted = new Intl.NumberFormat("en-US", {
+                const value = String(row.getValue("loanAmount"))
+                const amount = parseFloat(value)
+                if (isNaN(amount)) return "N/A"
+                return new Intl.NumberFormat("en-US", {
                     style: "currency",
                     currency: "LKR",
                 }).format(amount)
-                return formatted
             },
         },
         {
             accessorKey: "durationMonths",
             header: "Duration (months)",
             cell: ({ row }) => {
-                const rate = parseFloat(row.getValue("durationMonths"))
-                return `${rate}`
+                const value = String(row.getValue("durationMonths"))
+                const months = parseInt(value)
+                if (isNaN(months)) return "N/A"
+                return `${months}`
             },
         },
         {
             accessorKey: "monthlyIncome",
             header: "Monthly Income",
+            cell: ({ row }) => {
+                const value = String(row.getValue("monthlyIncome"))
+                const amount = parseFloat(value)
+                if (isNaN(amount)) return "N/A"
+                return new Intl.NumberFormat("en-US", {
+                    style: "currency",
+                    currency: "LKR",
+                }).format(amount)
+            },
         },
         {
             accessorKey: "status",
@@ -170,6 +235,15 @@ export function LoanDataTable({ data }: { data: Loan[] }) {
         {
             accessorKey: "emi",
             header: "EMI",
+            cell: ({ row }) => {
+                const value = String(row.getValue("emi"))
+                const amount = parseFloat(value)
+                if (isNaN(amount)) return "N/A"
+                return new Intl.NumberFormat("en-US", {
+                    style: "currency",
+                    currency: "LKR",
+                }).format(amount)
+            },
         },
         {
             id: "actions",
@@ -181,40 +255,6 @@ export function LoanDataTable({ data }: { data: Loan[] }) {
                 const [isLoading, setIsLoading] = useState(false)
                 const [error, setError] = useState<string>("")
 
-                const handleStatusUpdate = async (newStatus: string) => {
-                    try {
-                        setError("")
-                        setIsLoading(true)
-                        const updatedLoan = await loanApi.updateStatus(loan.id,  { status: newStatus })
-                        setShowStatusModal(false)
-                        // Update the table data with the new values
-                        updateTableData({
-                            ...loan,
-                            status: newStatus
-                        })
-                    } catch (error: any) {
-                        setError(error.message || "Failed to update loan status")
-                        console.error(error)
-                    } finally {
-                        setIsLoading(false)
-                    }
-                }
-
-                const handleDelete = async () => {
-                    try {
-                        setIsLoading(true)
-                        await loanApi.delete(loan.id)
-                        toast.success("Loan deleted successfully")
-                        setShowDeleteDialog(false)
-                        // Remove the loan from the table
-                        removeFromTableData(loan.id)
-                    } catch (error: any) {
-                        toast.error("Failed to delete loan")
-                        console.error(error)
-                    } finally {
-                        setIsLoading(false)
-                    }
-                }
 
                 return (
                     <>
@@ -230,67 +270,14 @@ export function LoanDataTable({ data }: { data: Loan[] }) {
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-32">
-                                <DropdownMenuItem onClick={() => setShowStatusModal(true)}>
-                                    Update Status
-                                </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => setShowViewModal(true)}>
                                     View Details
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                    variant="destructive"
-                                    onClick={() => setShowDeleteDialog(true)}
-                                >
-                                    Delete
-                                </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
 
-                        {/* Status Update Modal */}
-                        <Dialog open={showStatusModal} onOpenChange={setShowStatusModal}>
-                            <DialogContent className="sm:max-w-[425px]">
-                                <DialogHeader>
-                                    <DialogTitle>Update Loan Status</DialogTitle>
-                                </DialogHeader>
-                                <div className="grid gap-4 py-4">
-                                    <div className="grid grid-cols-4 items-center gap-4">
-                                        <Label className="text-right">Current Status</Label>
-                                        <div className="col-span-3">{loan.status}</div>
-                                    </div>
-                                    <div className="grid grid-cols-4 items-center gap-4">
-                                        <Label htmlFor="status" className="text-right">
-                                            New Status
-                                        </Label>
-                                        <Select
-                                            onValueChange={(value) => handleStatusUpdate(value)}
-                                            disabled={isLoading}
-                                        >
-                                            <SelectTrigger className="col-span-3">
-                                                <SelectValue placeholder="Select new status" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="pending">Pending</SelectItem>
-                                                <SelectItem value="approved">Approved</SelectItem>
-                                                <SelectItem value="rejected">Rejected</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                </div>
-                                <ErrorMessage message={error} className="mb-4" />
-                                <DialogFooter>
-                                    <Button
-                                        variant="outline"
-                                        onClick={() => {
-                                            setShowStatusModal(false)
-                                            setError("")
-                                        }}
-                                        disabled={isLoading}
-                                    >
-                                        Cancel
-                                    </Button>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
+
 
                         {/* View Details Modal */}
                         <Dialog open={showViewModal} onOpenChange={setShowViewModal}>
@@ -303,16 +290,16 @@ export function LoanDataTable({ data }: { data: Loan[] }) {
                                         <div className="space-y-2">
                                             <Label className="text-sm font-medium">Customer Name</Label>
                                             <div className="text-sm">
-                                                {loan.user.firstName} {loan.user.lastName}
+                                                {loan.user ? `${loan.user.firstName} ${loan.user.lastName}` : "N/A"}
                                             </div>
                                         </div>
                                         <div className="space-y-2">
                                             <Label className="text-sm font-medium">Email</Label>
-                                            <div className="text-sm">{loan.user.email}</div>
+                                            <div className="text-sm">{loan.user?.email || "N/A"}</div>
                                         </div>
                                         <div className="space-y-2">
                                             <Label className="text-sm font-medium">Phone</Label>
-                                            <div className="text-sm">{loan.user.phoneNumber}</div>
+                                            <div className="text-sm">{loan.user?.phoneNumber || "N/A"}</div>
                                         </div>
                                         <div className="space-y-2">
                                             <Label className="text-sm font-medium">Status</Label>
@@ -326,32 +313,40 @@ export function LoanDataTable({ data }: { data: Loan[] }) {
                                             <div className="space-y-2">
                                                 <Label className="text-sm font-medium">Loan Amount</Label>
                                                 <div className="text-sm">
-                                                    {new Intl.NumberFormat("en-US", {
-                                                        style: "currency",
-                                                        currency: "LKR",
-                                                    }).format(parseFloat(loan.loanAmount))}
+                                                    {isNaN(parseFloat(String(loan.loanAmount)))
+                                                        ? "N/A"
+                                                        : new Intl.NumberFormat("en-US", {
+                                                            style: "currency",
+                                                            currency: "LKR",
+                                                        }).format(parseFloat(String(loan.loanAmount)))}
                                                 </div>
                                             </div>
                                             <div className="space-y-2">
                                                 <Label className="text-sm font-medium">Duration</Label>
-                                                <div className="text-sm">{loan.durationMonths} months</div>
+                                                <div className="text-sm">
+                                                    {isNaN(Number(loan.durationMonths)) ? "N/A" : `${loan.durationMonths} months`}
+                                                </div>
                                             </div>
                                             <div className="space-y-2">
                                                 <Label className="text-sm font-medium">Monthly Income</Label>
                                                 <div className="text-sm">
-                                                    {new Intl.NumberFormat("en-US", {
-                                                        style: "currency",
-                                                        currency: "LKR",
-                                                    }).format(parseFloat(loan.monthlyIncome))}
+                                                    {isNaN(parseFloat(String(loan.monthlyIncome)))
+                                                        ? "N/A"
+                                                        : new Intl.NumberFormat("en-US", {
+                                                            style: "currency",
+                                                            currency: "LKR",
+                                                        }).format(parseFloat(String(loan.monthlyIncome)))}
                                                 </div>
                                             </div>
                                             <div className="space-y-2">
                                                 <Label className="text-sm font-medium">EMI</Label>
                                                 <div className="text-sm">
-                                                    {new Intl.NumberFormat("en-US", {
-                                                        style: "currency",
-                                                        currency: "LKR",
-                                                    }).format(parseFloat(loan.emi))}
+                                                    {isNaN(parseFloat(String(loan.emi)))
+                                                        ? "N/A"
+                                                        : new Intl.NumberFormat("en-US", {
+                                                            style: "currency",
+                                                            currency: "LKR",
+                                                        }).format(parseFloat(String(loan.emi)))}
                                                 </div>
                                             </div>
                                             <div className="space-y-2">
@@ -371,27 +366,7 @@ export function LoanDataTable({ data }: { data: Loan[] }) {
                             </DialogContent>
                         </Dialog>
 
-                        {/* Delete Confirmation Dialog */}
-                        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        This action cannot be undone. This will permanently delete the loan
-                                        and remove its data from our servers.
-                                    </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction
-                                        onClick={handleDelete}
-                                        disabled={isLoading}
-                                    >
-                                        {isLoading ? "Deleting..." : "Delete"}
-                                    </AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
+
                     </>
                 )
             },
@@ -448,10 +423,133 @@ export function LoanDataTable({ data }: { data: Loan[] }) {
                 </Select>
                 <TabsList className="**:data-[slot=badge]:bg-muted-foreground/30 hidden **:data-[slot=badge]:size-5 **:data-[slot=badge]:rounded-full **:data-[slot=badge]:px-1 @4xl/main:flex">
                     <TabsTrigger value="loans">All Loans</TabsTrigger>
-
                 </TabsList>
-                
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground min-w-8 duration-200 ease-linear hidden sm:flex"
+                        onClick={() => setShowCreateModal(true)}
+                    >
+                        <IconCirclePlusFilled className="h-4 w-4 mr-2" />
+                        <span>Create Loan</span>
+                    </Button>
+                </div>
             </div>
+
+            {/* Create Loan Modal */}
+            <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+                <DialogContent className="sm:max-w-[600px]">
+                    <DialogHeader>
+                        <DialogTitle>Create New Loan</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-6 py-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="loanAmount">Loan Amount</Label>
+                                <Input
+                                    id="loanAmount"
+                                    type="number"
+                                    value={formData.loanAmount}
+                                    onChange={(e) => {
+                                        setFormData(prev => ({ ...prev, loanAmount: e.target.value }))
+                                        setServerError("")
+                                    }}
+                                    placeholder="Enter loan amount"
+                                    className={serverError ? "border-red-500" : ""}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="durationMonths">Duration (months)</Label>
+                                <Input
+                                    id="durationMonths"
+                                    type="number"
+                                    value={formData.durationMonths}
+                                    onChange={(e) => {
+                                        setFormData(prev => ({ ...prev, durationMonths: e.target.value }))
+                                        setServerError("")
+                                    }}
+                                    placeholder="Enter duration"
+                                    className={serverError ? "border-red-500" : ""}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="monthlyIncome">Monthly Income</Label>
+                                <Input
+                                    id="monthlyIncome"
+                                    type="number"
+                                    value={formData.monthlyIncome}
+                                    onChange={(e) => {
+                                        setFormData(prev => ({ ...prev, monthlyIncome: e.target.value }))
+                                        setServerError("")
+                                    }}
+                                    placeholder="Enter monthly income"
+                                    className={serverError ? "border-red-500" : ""}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="purpose">Purpose</Label>
+                                <Input
+                                    id="purpose"
+                                    value={formData.purpose}
+                                    onChange={(e) => {
+                                        setFormData(prev => ({ ...prev, purpose: e.target.value }))
+                                        setServerError("")
+                                    }}
+                                    placeholder="Enter loan purpose"
+                                    className={serverError ? "border-red-500" : ""}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="existingLoans">Existing Loans</Label>
+                                <Input
+                                    id="existingLoans"
+                                    value={formData.existingLoans}
+                                    onChange={(e) => {
+                                        setFormData(prev => ({ ...prev, existingLoans: e.target.value }))
+                                        setServerError("")
+                                    }}
+                                    placeholder="Enter existing loans"
+                                    className={serverError ? "border-red-500" : ""}
+                                />
+                            </div>
+
+                        </div>
+                    </div>
+                    {serverError && (
+                        <ErrorMessage
+                            message={serverError}
+                            className="mb-4 text-sm text-red-500"
+                        />
+                    )}
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setShowCreateModal(false)
+                                setServerError("")
+                                setFormData({
+                                    loanAmount: "",
+                                    durationMonths: "",
+                                    monthlyIncome: "",
+                                    purpose: "",
+                                    existingLoans: "0"
+                                })
+                            }}
+                            disabled={isLoading}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleCreateLoan}
+                            disabled={isLoading}
+                        >
+                            {isLoading ? "Creating..." : "Create Loan"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
             <TabsContent value="loans" className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
                 <div className="overflow-hidden rounded-lg border">
                     <Table>

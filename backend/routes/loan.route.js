@@ -140,6 +140,29 @@ router.get(
 
 /**
  * @swagger
+ * /api/loans/my-loans:
+ *   get:
+ *     summary: Get current user's loans
+ *     tags: [Loans]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of user's loans
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Not authorized
+ */
+router.get(
+    '/my-loans',
+    authenticate,
+    authorize('customer'),
+    loanController.getLoansByUserId
+);
+
+/**
+ * @swagger
  * /api/loans/{id}:
  *   get:
  *     summary: Get loan by ID (Admin or loan owner)
@@ -293,29 +316,6 @@ router.delete(
     authenticate,
     authorize('admin'),
     loanController.deleteLoan
-);
-
-/**
- * @swagger
- * /api/loans/my-loans:
- *   get:
- *     summary: Get current user's loans
- *     tags: [Loans]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: List of user's loans
- *       401:
- *         description: Not authenticated
- *       403:
- *         description: Not authorized
- */
-router.get(
-    '/my-loans',
-    authenticate,
-    authorize('customer'),
-    loanController.getLoansByUserId
 );
 
 export default router;

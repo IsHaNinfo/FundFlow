@@ -48,7 +48,6 @@ export default function LoansPage() {
     useEffect(() => {
         const fetchCustomers = async () => {
             try {
-                const token = localStorage.getItem('token')
 
                 const response = await loanApi.getAll()
 
