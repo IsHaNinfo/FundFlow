@@ -1,8 +1,11 @@
 "use client"
 
 import * as React from "react"
-import { IconCirclePlusFilled } from "@tabler/icons-react"
+import { IconCirclePlusFilled, IconEye, IconEyeOff } from "@tabler/icons-react"
 import Link from "next/link"
+import { useState } from "react"
+import { toast } from "sonner"
+import { customerApi } from "@/services/api"
 import {
     IconChevronDown,
     IconChevronLeft,
@@ -58,6 +61,25 @@ import {
     TabsList,
     TabsTrigger,
 } from "@/components/ui/tabs"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { ErrorMessage } from "@/components/ui/error-message"
 
 type Customer = {
     id: string
@@ -69,57 +91,409 @@ type Customer = {
     role: string
 }
 
-const columns: ColumnDef<Customer>[] = [
-    {
-        accessorKey: "firstName",
-        header: "First Name",
-    },
-    {
-        accessorKey: "lastName",
-        header: "Last Name",
-    },
-    {
-        accessorKey: "email",
-        header: "Email",
-    },
-    {
-        accessorKey: "nic",
-        header: "NIC",
-    },
-    {
-        accessorKey: "phoneNumber",
-        header: "Phone Number",
-    },
-    {
-        accessorKey: "role",
-        header: "Role",
-    },
-    {
-        id: "actions",
-        cell: () => (
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button
-                        variant="ghost"
-                        className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
-                        size="icon"
-                    >
-                        <IconDotsVertical />
-                        <span className="sr-only">Open menu</span>
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-32">
-                    <DropdownMenuItem>Edit</DropdownMenuItem>
-                    <DropdownMenuItem>View Details</DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem variant="destructive">Delete</DropdownMenuItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
-        ),
-    },
-]
+export function CustomerDataTable({
+    data,
+    onDataChange
+}: {
+    data: Customer[]
+    onDataChange?: (newData: Customer[]) => void
+}) {
+    const [tableData, setTableData] = React.useState<Customer[]>(data)
+    const [showCreateModal, setShowCreateModal] = useState(false)
+    const [isCreating, setIsCreating] = useState(false)
+    const [showPassword, setShowPassword] = useState(false)
+    const [createError, setCreateError] = useState<string>("")
+    const [editError, setEditError] = useState<string>("")
 
-export function CustomerDataTable({ data }: { data: Customer[] }) {
+    const [createFormData, setCreateFormData] = useState({
+        firstName: '',
+        lastName: '',
+        email: '',
+        nic: '',
+        phoneNumber: '',
+        password: '',
+    })
+
+    // Update local state when prop changes
+    React.useEffect(() => {
+        setTableData(data)
+    }, [data])
+
+    const updateTableData = (updatedCustomer: Customer) => {
+        const newData = tableData.map(customer =>
+            customer.id === updatedCustomer.id ? updatedCustomer : customer
+        )
+        setTableData(newData)
+        onDataChange?.(newData)
+    }
+
+    const removeFromTableData = (customerId: string) => {
+        const newData = tableData.filter(customer => customer.id !== customerId)
+        setTableData(newData)
+        onDataChange?.(newData)
+    }
+
+    const handleCreateInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { id, value } = e.target
+        setCreateFormData(prev => ({
+            ...prev,
+            [id]: value
+        }))
+    }
+
+    const validateCreateForm = () => {
+        if (!createFormData.firstName.trim()) {
+            setCreateError("First name is required")
+            return false
+        }
+        if (!createFormData.lastName.trim()) {
+            setCreateError("Last name is required")
+            return false
+        }
+        if (!createFormData.email.trim()) {
+            setCreateError("Email is required")
+            return false
+        }
+        if (!createFormData.password) {
+            setCreateError("Password is required")
+            return false
+        }
+        if (createFormData.password.length < 6) {
+            setCreateError("Password must be at least 6 characters long")
+            return false
+        }
+        if (!createFormData.nic.trim()) {
+            setCreateError("NIC is required")
+            return false
+        }
+        if (!createFormData.phoneNumber.trim()) {
+            setCreateError("Phone number is required")
+            return false
+        }
+        return true
+    }
+
+    const handleCreate = async () => {
+        if (!validateCreateForm()) {
+            return
+        }
+        try {
+            setCreateError("")
+            setIsCreating(true)
+            const newCustomer = await customerApi.createCustomer(createFormData)
+            console.log(newCustomer.data.user)
+            // Make sure the newCustomer has all required fields
+            const customerToAdd: Customer = {
+                id: newCustomer.data.user.id,
+                firstName: newCustomer.data.user.firstName,
+                lastName: newCustomer.data.user.lastName,
+                email: newCustomer.data.user.email,
+                nic: newCustomer.data.user.nic,
+                phoneNumber: newCustomer.data.user.phoneNumber,
+                role: newCustomer.data.user.role || 'customer' // Set a default role if not provided
+            }
+
+            // Add the new customer to the table
+            const newData = [...tableData, customerToAdd]
+            setTableData(newData)
+            onDataChange?.(newData)
+
+            setShowCreateModal(false)
+
+            // Reset form
+            setCreateFormData({
+                firstName: '',
+                lastName: '',
+                email: '',
+                nic: '',
+                phoneNumber: '',
+                password: '',
+            })
+        } catch (error: any) {
+            if (error.response?.data?.message) {
+                // If the error has a message from the server
+                setCreateError(error.response.data.message)
+            } else if (error.message) {
+                // If it's a general error with a message
+                setCreateError(error.message)
+            } else {
+                // Fallback error message
+                setCreateError("Failed to create customer")
+            }
+            console.error("Create customer error:", error)
+        } finally {
+            setIsCreating(false)
+        }
+    }
+
+    // Define columns inside the component to access the functions
+    const columns: ColumnDef<Customer>[] = [
+        {
+            accessorKey: "firstName",
+            header: "First Name",
+        },
+        {
+            accessorKey: "lastName",
+            header: "Last Name",
+        },
+        {
+            accessorKey: "email",
+            header: "Email",
+        },
+        {
+            accessorKey: "nic",
+            header: "NIC",
+        },
+        {
+            accessorKey: "phoneNumber",
+            header: "Phone Number",
+        },
+        {
+            accessorKey: "role",
+            header: "Role",
+        },
+        {
+            id: "actions",
+            cell: ({ row }) => {
+                const customer = row.original
+                const [showEditModal, setShowEditModal] = useState(false)
+                const [showViewModal, setShowViewModal] = useState(false)
+                const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+                const [isLoading, setIsLoading] = useState(false)
+                const [formData, setFormData] = useState({
+                    firstName: customer.firstName,
+                    lastName: customer.lastName,
+                    email: customer.email,
+                    nic: customer.nic,
+                    phoneNumber: customer.phoneNumber,
+                    role: customer.role
+                })
+
+                const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+                    const { id, value } = e.target
+                    setFormData(prev => ({
+                        ...prev,
+                        [id]: value
+                    }))
+                }
+
+                const handleEdit = async () => {
+                    try {
+                        setEditError("")
+                        setIsLoading(true)
+                        await customerApi.update(customer.id, formData)
+                        toast.success("Customer updated successfully")
+                        setShowEditModal(false)
+                        // Update the table data with the new values
+                        updateTableData({
+                            ...customer,
+                            ...formData
+                        })
+                    } catch (error: any) {
+                        setEditError(error.message || "Failed to update customer")
+                        console.error(error)
+                    } finally {
+                        setIsLoading(false)
+                    }
+                }
+
+                const handleDelete = async () => {
+                    try {
+                        setIsLoading(true)
+                        await customerApi.delete(customer.id)
+                        toast.success("Customer deleted successfully")
+                        setShowDeleteDialog(false)
+                        // Remove the customer from the table
+                        removeFromTableData(customer.id)
+                    } catch (error) {
+                        toast.error("Failed to delete customer")
+                        console.error(error)
+                    } finally {
+                        setIsLoading(false)
+                    }
+                }
+
+                return (
+                    <>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
+                                    size="icon"
+                                >
+                                    <IconDotsVertical />
+                                    <span className="sr-only">Open menu</span>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-32">
+                                <DropdownMenuItem onClick={() => setShowEditModal(true)}>
+                                    Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setShowViewModal(true)}>
+                                    View Details
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                    variant="destructive"
+                                    onClick={() => setShowDeleteDialog(true)}
+                                >
+                                    Delete
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+
+                        {/* Edit Modal */}
+                        <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+                            <DialogContent className="sm:max-w-[425px]">
+                                <DialogHeader>
+                                    <DialogTitle>Edit Customer</DialogTitle>
+                                </DialogHeader>
+                                <div className="grid gap-4 py-4">
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label htmlFor="firstName" className="text-right">
+                                            First Name
+                                        </Label>
+                                        <Input
+                                            id="firstName"
+                                            value={formData.firstName}
+                                            onChange={handleInputChange}
+                                            className="col-span-3"
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label htmlFor="lastName" className="text-right">
+                                            Last Name
+                                        </Label>
+                                        <Input
+                                            id="lastName"
+                                            value={formData.lastName}
+                                            onChange={handleInputChange}
+                                            className="col-span-3"
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label htmlFor="email" className="text-right">
+                                            Email
+                                        </Label>
+                                        <Input
+                                            id="email"
+                                            value={formData.email}
+                                            onChange={handleInputChange}
+                                            className="col-span-3"
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label htmlFor="nic" className="text-right">
+                                            NIC
+                                        </Label>
+                                        <Input
+                                            id="nic"
+                                            value={formData.nic}
+                                            onChange={handleInputChange}
+                                            className="col-span-3"
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label htmlFor="phoneNumber" className="text-right">
+                                            Phone
+                                        </Label>
+                                        <Input
+                                            id="phoneNumber"
+                                            value={formData.phoneNumber}
+                                            onChange={handleInputChange}
+                                            className="col-span-3"
+                                        />
+                                    </div>
+
+                                </div>
+                                <ErrorMessage message={editError} className="mb-4" />
+                                <DialogFooter>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => {
+                                            setShowEditModal(false)
+                                            setEditError("")
+                                        }}
+                                        disabled={isLoading}
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        onClick={handleEdit}
+                                        disabled={isLoading}
+                                    >
+                                        {isLoading ? "Saving..." : "Save Changes"}
+                                    </Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
+
+                        {/* View Details Modal */}
+                        <Dialog open={showViewModal} onOpenChange={setShowViewModal}>
+                            <DialogContent className="sm:max-w-[425px]">
+                                <DialogHeader>
+                                    <DialogTitle>Customer Details</DialogTitle>
+                                </DialogHeader>
+                                <div className="grid gap-4 py-4">
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label className="text-right">First Name</Label>
+                                        <div className="col-span-3">{customer.firstName}</div>
+                                    </div>
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label className="text-right">Last Name</Label>
+                                        <div className="col-span-3">{customer.lastName}</div>
+                                    </div>
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label className="text-right">Email</Label>
+                                        <div className="col-span-3">{customer.email}</div>
+                                    </div>
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label className="text-right">NIC</Label>
+                                        <div className="col-span-3">{customer.nic}</div>
+                                    </div>
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label className="text-right">Phone</Label>
+                                        <div className="col-span-3">{customer.phoneNumber}</div>
+                                    </div>
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label className="text-right">Role</Label>
+                                        <div className="col-span-3">{customer.role}</div>
+                                    </div>
+                                </div>
+                                <DialogFooter>
+                                    <Button onClick={() => setShowViewModal(false)}>Close</Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
+
+                        {/* Delete Confirmation Dialog */}
+                        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        This action cannot be undone. This will permanently delete the customer
+                                        and remove their data from our servers.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                        onClick={handleDelete}
+                                        disabled={isLoading}
+                                    >
+                                        {isLoading ? "Deleting..." : "Delete"}
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    </>
+                )
+            },
+        },
+    ]
+
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
@@ -129,7 +503,7 @@ export function CustomerDataTable({ data }: { data: Customer[] }) {
     })
 
     const table = useReactTable({
-        data,
+        data: tableData,
         columns,
         state: {
             sorting,
@@ -163,27 +537,21 @@ export function CustomerDataTable({ data }: { data: Customer[] }) {
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="customers">All Customers</SelectItem>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="inactive">Inactive</SelectItem>
                     </SelectContent>
                 </Select>
                 <TabsList className="**:data-[slot=badge]:bg-muted-foreground/30 hidden **:data-[slot=badge]:size-5 **:data-[slot=badge]:rounded-full **:data-[slot=badge]:px-1 @4xl/main:flex">
                     <TabsTrigger value="customers">All Customers</TabsTrigger>
-                    <TabsTrigger value="active">Active</TabsTrigger>
-                    <TabsTrigger value="inactive">Inactive</TabsTrigger>
+
                 </TabsList>
                 <div className="flex items-center gap-2">
-
                     <Button
                         variant="ghost"
-                        asChild
                         size="sm"
                         className="bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground min-w-8 duration-200 ease-linear hidden sm:flex"
+                        onClick={() => setShowCreateModal(true)}
                     >
-                        <Link href="/customers/create" className="flex items-center gap-2">
-                            <IconCirclePlusFilled className="h-4 w-4" />
-                            <span>Create Customer</span>
-                        </Link>
+                        <IconCirclePlusFilled className="h-4 w-4 mr-2" />
+                        <span>Create Customer</span>
                     </Button>
                 </div>
             </div>
@@ -318,6 +686,122 @@ export function CustomerDataTable({ data }: { data: Customer[] }) {
             <TabsContent value="inactive" className="flex flex-col px-4 lg:px-6">
                 <div className="aspect-video w-full flex-1 rounded-lg border border-dashed"></div>
             </TabsContent>
+
+            {/* Create Customer Modal */}
+            <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>Create New Customer</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="firstName" className="text-right">
+                                First Name
+                            </Label>
+                            <Input
+                                id="firstName"
+                                value={createFormData.firstName}
+                                onChange={handleCreateInputChange}
+                                className="col-span-3"
+                            />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="lastName" className="text-right">
+                                Last Name
+                            </Label>
+                            <Input
+                                id="lastName"
+                                value={createFormData.lastName}
+                                onChange={handleCreateInputChange}
+                                className="col-span-3"
+                            />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="email" className="text-right">
+                                Email
+                            </Label>
+                            <Input
+                                id="email"
+                                value={createFormData.email}
+                                onChange={handleCreateInputChange}
+                                className="col-span-3"
+                            />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="password" className="text-right">
+                                Password
+                            </Label>
+                            <div className="col-span-3 relative">
+                                <Input
+                                    id="password"
+                                    type={showPassword ? "text" : "password"}
+                                    value={createFormData.password}
+                                    onChange={handleCreateInputChange}
+                                    className="pr-10"
+                                    minLength={6}
+                                />
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                >
+                                    {showPassword ? (
+                                        <IconEyeOff className="h-4 w-4" />
+                                    ) : (
+                                        <IconEye className="h-4 w-4" />
+                                    )}
+                                    <span className="sr-only">
+                                        {showPassword ? "Hide password" : "Show password"}
+                                    </span>
+                                </Button>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="nic" className="text-right">
+                                NIC
+                            </Label>
+                            <Input
+                                id="nic"
+                                value={createFormData.nic}
+                                onChange={handleCreateInputChange}
+                                className="col-span-3"
+                            />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="phoneNumber" className="text-right">
+                                Phone
+                            </Label>
+                            <Input
+                                id="phoneNumber"
+                                value={createFormData.phoneNumber}
+                                onChange={handleCreateInputChange}
+                                className="col-span-3"
+                            />
+                        </div>
+                    </div>
+                    <ErrorMessage message={createError} className="mb-4" />
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setShowCreateModal(false)
+                                setCreateError("")
+                            }}
+                            disabled={isCreating}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleCreate}
+                            disabled={isCreating}
+                        >
+                            {isCreating ? "Creating..." : "Create Customer"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </Tabs>
     )
 } 

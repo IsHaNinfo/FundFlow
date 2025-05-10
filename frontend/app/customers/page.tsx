@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/sidebar"
 import { useEffect, useState } from "react"
 import axios from "axios"
-
+import { customerApi } from "@/services/api"
 
 
 const page = () => {
@@ -41,13 +41,9 @@ const page = () => {
             try {
                 const token = localStorage.getItem('token')
 
-                const response = await axios.get(`http://localhost:8000/api/users`, {
-
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                })
-                setData(response.data.data)
+                const response = await customerApi.getAll()
+                console.log(response.data)
+                setData(response.data)
 
             } catch (error) {
                 console.error('Error fetching customers:', error)
@@ -58,6 +54,10 @@ const page = () => {
 
         fetchCustomers()
     }, [])
+
+    const handleDataChange = (newData: Customer[]) => {
+        setData(newData)
+    }
     return (
         <SidebarProvider
             style={
@@ -74,10 +74,12 @@ const page = () => {
                     <div className="@container/main flex flex-1 flex-col gap-2">
                         <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
 
-                        {loading ? (
+                            {loading ? (
                                 <div>Loading...</div>
                             ) : (
-                                <CustomerDataTable data={data} />
+                                <CustomerDataTable data={data}
+                                    onDataChange={handleDataChange}
+                                />
 
                             )}                        </div>
                     </div>

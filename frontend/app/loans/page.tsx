@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/sidebar"
 import { useEffect, useState } from "react"
 import axios from "axios"
+import { loanApi } from '@/services/api';
 
 
 
@@ -50,14 +51,9 @@ const page = () => {
             try {
                 const token = localStorage.getItem('token')
 
-                const response = await axios.get(`http://localhost:8000/api/loans`, {
+                const response = await loanApi.getAll()
 
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                })
-                console.log(response.data.data)
-                setData(response.data.data)
+                setData(response.data)
 
             } catch (error) {
                 console.error('Error fetching customers:', error)
