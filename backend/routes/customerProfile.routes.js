@@ -63,7 +63,7 @@ const router = express.Router();
  *     summary: Create a new customer profile
  *     tags: [CustomerProfiles]
  *     security:
- *       - userAuth: []
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -125,7 +125,7 @@ router.post(
  *     summary: Get all customer profiles (Admin only)
  *     tags: [CustomerProfiles]
  *     security:
- *       - adminAuth: []
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: List of all customer profiles
@@ -163,7 +163,7 @@ router.get(
  *     summary: Get customer profile by ID
  *     tags: [CustomerProfiles]
  *     security:
- *       - userAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -206,7 +206,7 @@ router.get(
  *     summary: Get customer profile by user ID
  *     tags: [CustomerProfiles]
  *     security:
- *       - userAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: userId
@@ -249,7 +249,7 @@ router.get(
  *     summary: Update customer profile
  *     tags: [CustomerProfiles]
  *     security:
- *       - userAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -310,7 +310,7 @@ router.put(
  *     summary: Delete customer profile (Admin only)
  *     tags: [CustomerProfiles]
  *     security:
- *       - adminAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id

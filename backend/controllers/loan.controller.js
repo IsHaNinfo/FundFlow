@@ -67,10 +67,12 @@ export const deleteLoan = async (req, res, next) => {
 export const getLoansByUserId = async (req, res, next) => {
     try {
         const userId = req.user.id; // Get userId from authenticated user
+        console.log("userId", userId)
         const loans = await loanService.getLoansByUserId(userId);
         res.status(ApiResponse.HTTP_STATUS.OK).json(
             ApiResponse.success(loans, 'User loans retrieved successfully')
         );
+        console.log("loans", loans)
     } catch (error) {
         next(error);
     }

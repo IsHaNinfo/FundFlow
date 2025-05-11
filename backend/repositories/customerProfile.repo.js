@@ -29,6 +29,11 @@ export const getCustomerProfileByUserId = async (userId) => {
     try {
         return await CustomerProfile.findOne({
             where: { userId: userId },
+            include: [{
+                model: User,
+                as: 'user',
+                attributes: ['firstName', 'lastName', 'email', 'phoneNumber', 'nic']
+            }]
         });
     } catch (error) {
         throw error;
