@@ -52,13 +52,13 @@ export const CustomerProfile = sequelize.define(
 CustomerProfile.belongsTo(User, {
     foreignKey: 'userId',
     as: 'user',
-    onDelete: 'CASCADE'  // Add this line
+    onDelete: 'CASCADE'  
 
 });
 
 User.hasOne(CustomerProfile, {
     foreignKey: 'userId',
     as: 'profile',
-    onDelete: 'CASCADE'  // Add this line
+    onDelete: 'CASCADE'  
 
 }); 

@@ -5,7 +5,6 @@ import ApiResponse from "../utils/ApiResponse.js";
 
 export const createCustomerProfile = async (userId, profileData) => {
     try {
-        // Check if user exists and is a customer
         const user = await userRepo.getUserById(userId);
         if (!user) {
             throw new AppError('User not found', ApiResponse.HTTP_STATUS.NOT_FOUND);
@@ -14,7 +13,6 @@ export const createCustomerProfile = async (userId, profileData) => {
             throw new AppError('User is not a customer', ApiResponse.HTTP_STATUS.BAD_REQUEST);
         }
 
-        // Check if profile already exists
         const existingProfile = await customerProfileRepo.getCustomerProfileByUserId(userId);
         if (existingProfile) {
             throw new AppError('Customer profile already exists', ApiResponse.HTTP_STATUS.BAD_REQUEST);

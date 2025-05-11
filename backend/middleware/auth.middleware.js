@@ -10,7 +10,6 @@ export const authenticate = async (req, res, next) => {
         }
         const token = authHeader.split(' ')[1];
         const decoded = verifyToken(token);
-        console.log("decoded", token)
         req.user = decoded;
         next();
     } catch (error) {
@@ -21,9 +20,6 @@ export const authenticate = async (req, res, next) => {
 export const authorize = (...roles) => {
     return (req, res, next) => {
         if (!roles.includes(req.user.role)) {
-            console.log(req.user.role)
-            console.log('Required roles:', roles);
-
             throw new AppError('Not authorized to access this route', ApiResponse.HTTP_STATUS.FORBIDDEN);
         }
         next();

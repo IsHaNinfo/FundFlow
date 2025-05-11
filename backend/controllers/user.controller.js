@@ -83,7 +83,7 @@ export const registerAdmin = async (req, res, next) => {
     try {
         const userData = {
             ...req.body,
-            role: 'admin' // Force role to be admin
+            role: 'admin' 
         };
         const { user, token } = await userService.register(userData);
         const formattedUser = {
@@ -137,7 +137,6 @@ export const registerCustomer = async (req, res, next) => {
             await sendEmail(user.email, req.body.password);
         } catch (emailError) {
             console.error('Failed to send email:', emailError);
-            // Continue with registration even if email fails
         }
 
         return res.status(ApiResponse.HTTP_STATUS.CREATED).json({
@@ -159,7 +158,6 @@ export const login = async (req, res, next) => {
         const { email, password } = req.body;
         const { user, token } = await userService.login(email, password);
 
-        // Format user data to exclude sensitive information
         const formattedUser = {
             id: user.id,
             firstName: user.firstName,
@@ -178,7 +176,7 @@ export const login = async (req, res, next) => {
                 user: formattedUser,
                 token: token
             },
-            message: "Login successful"
+            message: "Login successfully"
         });
     } catch (error) {
         next(error);

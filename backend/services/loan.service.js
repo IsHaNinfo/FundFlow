@@ -165,7 +165,6 @@ export const deleteLoan = async (id) => {
 
 export const getLoansByUserId = async (userId) => {
     try {
-        // Check if user exists and is a customer
         const user = await userRepo.getUserById(userId);
         if (!user) {
             throw new AppError('User not found', ApiResponse.HTTP_STATUS.NOT_FOUND);
