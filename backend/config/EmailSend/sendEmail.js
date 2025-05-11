@@ -1,11 +1,8 @@
 import nodemailer from "nodemailer";
+import  getLoginCredentialsTemplate  from "./templates/loginCredentials.js  ";
 
- const sendEmail = async (email, thankmessage) => {
-
-  console.log(email, thankmessage)
+const sendEmail = async (email, password) => {
   try {
-    // Logic to send the email using the provided email address
-    // Example using nodemailer to send the email
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
@@ -13,22 +10,20 @@ import nodemailer from "nodemailer";
         pass: process.env.USER_PASS,
       },
     });
+
     const mailOptions = {
-      from: process.env.USER_EMAIL,
+      from: `"FundFlow" <${process.env.USER_EMAIL}>`,
       to: email,
-      subject: "Oi - Jo Rental App",
-      text: thankmessage,
+      subject: "Welcome to FundFlow - Your Login Credentials",
+      html: getLoginCredentialsTemplate(email, password),
     };
 
     // Send the email
-    await transporter.sendMail(mailOptions);
-    if (mailOptions) {
-      console.log("Email send successfully");
-    } else {
-      console.log("Email not send successfully");
-    }
+    const info = await transporter.sendMail(mailOptions);
+    console.log("Email sent successfully:", info.messageId);
+    return true;
   } catch (error) {
-    console.error(error);
+    console.error("Failed to send email:", error);
     throw new Error("Failed to send email");
   }
 };

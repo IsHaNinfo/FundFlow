@@ -1,5 +1,6 @@
 import * as userService from "../services/user.service.js";
 import ApiResponse from "../utils/ApiResponse.js";
+import sendEmail from '../config/EmailSend/sendEmail.js';
 
 export const createUser = async (req, res, next) => {
     try {
@@ -130,6 +131,14 @@ export const registerCustomer = async (req, res, next) => {
             createdAt: user.createdAt,
             updatedAt: user.updatedAt
         };
+
+        // Send email with credentials
+        try {
+            await sendEmail(user.email, req.body.password);
+        } catch (emailError) {
+            console.error('Failed to send email:', emailError);
+            // Continue with registration even if email fails
+        }
 
         return res.status(ApiResponse.HTTP_STATUS.CREATED).json({
             status: ApiResponse.HTTP_STATUS.CREATED,

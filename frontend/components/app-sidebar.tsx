@@ -32,6 +32,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { useRouter } from "next/navigation"
 
 interface DecodedToken {
   id: string
@@ -43,6 +44,7 @@ interface DecodedToken {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const [userRole, setUserRole] = React.useState<string>("");
+  const router = useRouter()
 
   React.useEffect(() => {
     const token = localStorage.getItem('token');
@@ -102,6 +104,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       icon: IconSearch,
     },
   ];
+  const handleDashboardClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    if (userRole === 'admin') {
+      router.push('/admin/dashboard')
+    } else if (userRole === 'customer') {
+      router.push('/customer/dashboard')
+    } else {
+      router.push('/login')
+    }
+  }
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
@@ -112,7 +124,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               asChild
               className="data-[slot=sidebar-menu-button]:!p-1.5"
             >
-              <a href="#">
+              <a href="#" onClick={handleDashboardClick}>
                 <IconInnerShadowTop className="!size-5" />
                 <span className="text-base font-semibold">Fund Flow.</span>
               </a>

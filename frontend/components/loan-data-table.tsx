@@ -109,12 +109,93 @@ type User = {
 
 export function LoanDataTable({ data }: { data: Loan[] }) {
     const [tableData, setTableData] = React.useState<Loan[]>(data)
-
-    // Update local state when prop changes
+    const [statusFilter, setStatusFilter] = useState<string>("all")
+    const [scoreFilter, setScoreFilter] = useState<string>("all")
     React.useEffect(() => {
         setTableData(data)
     }, [data])
+    const generatePDF = () => {
+        const doc = new jsPDF()
 
+
+        doc.setFontSize(20)
+        doc.setTextColor(41, 128, 185)
+        doc.text('Loan Report', 14, 15)
+        doc.setFontSize(12)
+        doc.setTextColor(100)
+        doc.text('FundFlow Loan Management System', 14, 22)
+        doc.setFontSize(10)
+        doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30)
+
+        doc.setFontSize(10)
+        doc.text(`Total Loans: ${getFilteredData().length}`, 14, 37)
+        doc.text(`Total Amount: ${new Intl.NumberFormat("en-US", {
+            style: "currency",
+            currency: "LKR",
+        }).format(getFilteredData().reduce((sum, loan) => sum + parseFloat(loan.loanAmount), 0))}`, 14, 44)
+
+        // Generate table with more customization
+        autoTable(doc, {
+            head: [['Customer Name', 'Loan Amount', 'Duration', 'Monthly Income', 'Status', 'Credit Score', 'EMI']],
+            body: getFilteredData().map(loan => [
+                `${loan.user.firstName} ${loan.user.lastName}`,
+                new Intl.NumberFormat("en-US", {
+                    style: "currency",
+                    currency: "LKR",
+                }).format(parseFloat(loan.loanAmount)),
+                loan.durationMonths.toString(),
+                new Intl.NumberFormat("en-US", {
+                    style: "currency",
+                    currency: "LKR",
+                }).format(parseFloat(loan.monthlyIncome)),
+                loan.status,
+                loan.score.toString(),
+                new Intl.NumberFormat("en-US", {
+                    style: "currency",
+                    currency: "LKR",
+                }).format(parseFloat(loan.emi))
+            ]),
+            startY: 50,
+            styles: {
+                fontSize: 8,
+                cellPadding: 2,
+            },
+            headStyles: {
+                fillColor: [41, 128, 185],
+                textColor: 255,
+                fontSize: 9,
+                fontStyle: 'bold',
+            },
+            alternateRowStyles: {
+                fillColor: [245, 245, 245],
+            },
+            columnStyles: {
+                0: { cellWidth: 40 },
+                1: { cellWidth: 30 },
+                2: { cellWidth: 20 },
+                3: { cellWidth: 30 },
+                4: { cellWidth: 25 },
+                5: { cellWidth: 25 },
+                6: { cellWidth: 30 },
+            },
+        })
+
+        // Add footer
+        const pageCount = doc.internal.getNumberOfPages()
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i)
+            doc.setFontSize(8)
+            doc.text(
+                `Page ${i} of ${pageCount}`,
+                doc.internal.pageSize.width / 2,
+                doc.internal.pageSize.height - 10,
+                { align: 'center' }
+            )
+        }
+
+        // Save the PDF
+        doc.save('loan-report.pdf')
+    }
     // Add these helper functions
     const updateTableData = (updatedLoan: Loan) => {
         const newData = tableData.map(loan =>
@@ -128,11 +209,6 @@ export function LoanDataTable({ data }: { data: Loan[] }) {
         setTableData(newData)
     }
 
-    // Add these new states for filters
-    const [statusFilter, setStatusFilter] = useState<string>("all")
-    const [scoreFilter, setScoreFilter] = useState<string>("all")
-
-    // Add this function to filter the data
     const getFilteredData = () => {
         return tableData.filter(loan => {
             const statusMatch = statusFilter === "all" || loan.status === statusFilter
@@ -145,7 +221,6 @@ export function LoanDataTable({ data }: { data: Loan[] }) {
         })
     }
 
-    // Define columns inside the component to access the functions
     const columns: ColumnDef<Loan>[] = [
         {
             accessorKey: "user",
@@ -185,7 +260,7 @@ export function LoanDataTable({ data }: { data: Loan[] }) {
         },
         {
             accessorKey: "score",
-            header: "Credit Score",
+            header: "Score",
         },
         {
             accessorKey: "emi",
@@ -316,7 +391,7 @@ export function LoanDataTable({ data }: { data: Loan[] }) {
                         <Dialog open={showViewModal} onOpenChange={setShowViewModal}>
                             <DialogContent className="sm:max-w-[600px]">
                                 <DialogHeader>
-                                    <DialogTitle>Loan Details</DialogTitle>
+                                    <DialogTitle>Customer Details</DialogTitle>
                                 </DialogHeader>
                                 <div className="grid gap-6 py-4">
                                     <div className="grid grid-cols-2 gap-4">
@@ -341,7 +416,7 @@ export function LoanDataTable({ data }: { data: Loan[] }) {
                                     </div>
 
                                     <div className="border-t pt-4">
-                                        <h3 className="text-lg font-medium mb-4">Loan Information</h3>
+                                        <h3 className="text-lg font-medium mb-4">Loans Information</h3>
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-2">
                                                 <Label className="text-sm font-medium">Loan Amount</Label>
@@ -381,6 +456,14 @@ export function LoanDataTable({ data }: { data: Loan[] }) {
                                             <div className="space-y-2">
                                                 <Label className="text-sm font-medium">Purpose</Label>
                                                 <div className="text-sm">{loan.purpose}</div>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-sm font-medium">Recommandations</Label>
+                                                <div className="text-sm">{loan.recommandations}</div>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-sm font-medium">Existing Loans</Label>
+                                                <div className="text-sm">{loan.existingLoans}</div>
                                             </div>
                                         </div>
                                     </div>
@@ -445,97 +528,7 @@ export function LoanDataTable({ data }: { data: Loan[] }) {
         getSortedRowModel: getSortedRowModel(),
     })
 
-    // Add this function to generate PDF
-    const generatePDF = () => {
-        const doc = new jsPDF()
 
-        // Add logo (if you have one)
-        // doc.addImage(logo, 'PNG', 14, 10, 30, 10)
-
-        // Add title with custom styling
-        doc.setFontSize(20)
-        doc.setTextColor(41, 128, 185)
-        doc.text('Loan Report', 14, 15)
-
-        // Add subtitle
-        doc.setFontSize(12)
-        doc.setTextColor(100)
-        doc.text('FundFlow Loan Management System', 14, 22)
-
-        // Add date with custom styling
-        doc.setFontSize(10)
-        doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30)
-
-        // Add summary information
-        doc.setFontSize(10)
-        doc.text(`Total Loans: ${getFilteredData().length}`, 14, 37)
-        doc.text(`Total Amount: ${new Intl.NumberFormat("en-US", {
-            style: "currency",
-            currency: "LKR",
-        }).format(getFilteredData().reduce((sum, loan) => sum + parseFloat(loan.loanAmount), 0))}`, 14, 44)
-
-        // Generate table with more customization
-        autoTable(doc, {
-            head: [['Customer Name', 'Loan Amount', 'Duration', 'Monthly Income', 'Status', 'Credit Score', 'EMI']],
-            body: getFilteredData().map(loan => [
-                `${loan.user.firstName} ${loan.user.lastName}`,
-                new Intl.NumberFormat("en-US", {
-                    style: "currency",
-                    currency: "LKR",
-                }).format(parseFloat(loan.loanAmount)),
-                loan.durationMonths.toString(),
-                new Intl.NumberFormat("en-US", {
-                    style: "currency",
-                    currency: "LKR",
-                }).format(parseFloat(loan.monthlyIncome)),
-                loan.status,
-                loan.score.toString(),
-                new Intl.NumberFormat("en-US", {
-                    style: "currency",
-                    currency: "LKR",
-                }).format(parseFloat(loan.emi))
-            ]),
-            startY: 50,
-            styles: {
-                fontSize: 8,
-                cellPadding: 2,
-            },
-            headStyles: {
-                fillColor: [41, 128, 185],
-                textColor: 255,
-                fontSize: 9,
-                fontStyle: 'bold',
-            },
-            alternateRowStyles: {
-                fillColor: [245, 245, 245],
-            },
-            columnStyles: {
-                0: { cellWidth: 40 },
-                1: { cellWidth: 30 },
-                2: { cellWidth: 20 },
-                3: { cellWidth: 30 },
-                4: { cellWidth: 25 },
-                5: { cellWidth: 25 },
-                6: { cellWidth: 30 },
-            },
-        })
-
-        // Add footer
-        const pageCount = doc.internal.getNumberOfPages()
-        for (let i = 1; i <= pageCount; i++) {
-            doc.setPage(i)
-            doc.setFontSize(8)
-            doc.text(
-                `Page ${i} of ${pageCount}`,
-                doc.internal.pageSize.width / 2,
-                doc.internal.pageSize.height - 10,
-                { align: 'center' }
-            )
-        }
-
-        // Save the PDF
-        doc.save('loan-report.pdf')
-    }
 
     return (
         <Tabs defaultValue="loans" className="w-full flex-col justify-start gap-6">

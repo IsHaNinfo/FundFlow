@@ -40,23 +40,21 @@ export function LoginForm({
         setError("");
         try {
 
-            const res = await customerApi.login({email, password})
-            console.log(res)
-            // Store token once
+            const res = await customerApi.login({ email, password })
             const token = res.data.token;
             localStorage.setItem("token", token);
+            await new Promise(resolve => setTimeout(resolve, 500));
 
-            // Decode token
             const decoded = jwtDecode<DecodedToken>(token);
             const userRole = decoded.role;
-            console.log(userRole)
-            // Role-based routing
+            await new Promise(resolve => setTimeout(resolve, 500));
+
             switch (userRole) {
                 case 'admin':
                     router.push("/admin/dashboard");
                     break;
                 case 'customer':
-                    router.push("/customer/profile");
+                    router.push("/customer/dashboard");
                     break;
                 default:
                     setError("Invalid user role");
