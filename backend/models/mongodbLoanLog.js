@@ -1,9 +1,8 @@
-// models/mongodbLoanLog.js
 import mongoose from "mongoose";
 
 const LoanLogSchema = new mongoose.Schema({
   loanId: {
-    type: String, // UUID or ObjectId
+    type: String, 
     required: true
   },
   userId: {
@@ -24,7 +23,7 @@ const LoanLogSchema = new mongoose.Schema({
     default: {}
   },
   performedBy: {
-    type: String // Admin email or ID
+    type: String 
   },
   timestamp: {
     type: Date,

@@ -1,23 +1,209 @@
-# FundFlow - Loan Management System
+# 🏦 FundFlow - Microfinance Credit Scoring & Loan Management System
 
-## Overview
-FundFlow is a modern loan management system that facilitates loan processing and management for both administrators and customers. The system is built using Next.js for the frontend and includes a robust backend API.
 
-## Tech Stack
+## 📋 Overview
+FundFlow is a modern microfinance platform that streamlines loan processing and management. Built with Next.js and Node.js, it features a smart credit scoring algorithm and comprehensive admin dashboard.
+
+![Admin Dashboard](./frontend/assets/admindashboard.png)
+*Admin Dashboard Overview*
+
+## 🚀 Features
+
+### 🔐 Authentication
+- JWT-based authentication
+- Role-based access (Admin/Customer)
+- Secure login system
+
+![Login Page](./frontend/assets/login.png)
+*Secure Login Interface*
+
+### 👥 Customer Management
+- Create and manage customer profiles
+- Track customer credit scores
+- View customer history
+
+### 💰 Loan Processing
+- Smart credit scoring algorithm
+- Multiple loan applications
+- Real-time status updates
+
+### 📊 Admin Dashboard
+- Comprehensive customer overview
+- Loan application management
+- Advanced filtering options
+
+![Loan Reports](./frontend/assets/loanreport.png)
+*Loan Application Reports*
+
+### 📝 Logging System
+- MongoDB-based logging
+- Detailed transaction history
+- Audit trail
+
+![MongoDB Logs](./frontend/assets/mongodblogs.png)
+*MongoDB Logging Interface*
+
+## 🛠 Tech Stack
 
 ### Frontend
-- Next.js 14
-- TypeScript
-- Tailwind CSS
-- Shadcn UI Components
-- Axios for API calls
-- JWT for authentication
+- ⚛️ Next.js 14
+- 📘 TypeScript
+- 🎨 Tailwind CSS
+- 🧩 Shadcn UI Components
+- 🔄 Axios for API calls
+- 🔐 JWT Authentication
 
 ### Backend
-- Node.js
-- Express.js
-- MongoDB
-- JWT Authentication
-- RESTful API
+- 🟢 Node.js
+- 🚂 Express.js
+- 🗄️ MongoDB
+- 🔐 JWT Authentication
+- 📡 RESTful API
 
-## Project Structure 
+## 🚀 Getting Started
+
+### Prerequisites
+- Node.js (v18 or higher)
+- MySQL
+- MongoDB
+- npm or yarn
+
+### Environment Setup
+
+#### Backend (.env)
+```env
+PORT=8000
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=your_db_password
+DB_NAME=fundflowdb
+JWT_SECRET=your_jwt_secret
+MONGO_URI=mongodb://localhost:27017/fundflow_logs
+```
+
+#### Frontend (.env)
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000/api
+```
+
+### Installation
+
+1. Clone the repository
+```bash
+git clone https://github.com/IsHaNinfo/FundFlow
+cd FundFlow
+```
+
+2. Install dependencies
+```bash
+# Backend
+cd backend
+npm install
+
+# Frontend
+cd frontend
+npm install
+```
+
+3. Start the servers
+```bash
+# Backend
+cd backend
+npm start
+
+# Frontend
+cd frontend
+npm start
+```
+
+## 📚 API Documentation
+
+![Swagger UI](/assets/swagger.png)
+*API Documentation Interface*
+
+### 👤 User Management
+
+| Method | Endpoint | Description | Auth Required |
+| :-- | :-- | :-- | :-- |
+| POST | `/api/users/register/admin` | Register a new admin user | No |
+| POST | `/api/users/register/customer` | Register a new customer (admin only) | Admin |
+| POST | `/api/users/login` | Login as admin or customer | No |
+| GET | `/api/users/profile` | Get current user profile | Yes |
+| GET | `/api/users/{id}` | Get user by ID | Yes |
+| PUT | `/api/users/{id}` | Update user | Yes |
+| DELETE | `/api/users/{id}` | Delete user (admin only) | Admin |
+| GET | `/api/users` | Get all users (admin only) | Admin |
+| GET | `/api/users/role/{role}` | Get users by role (`admin` or `customer`) | Admin |
+
+### 👥 Customer Profile Management
+
+| Method | Endpoint | Description | Auth Required |
+| :-- | :-- | :-- | :-- |
+| POST | `/api/customer-profiles` | Create a new customer profile | Admin |
+| GET | `/api/customer-profiles` | Get all customer profiles (admin only) | Admin |
+| GET | `/api/customer-profiles/{id}` | Get customer profile by ID | Yes |
+| PUT | `/api/customer-profiles/{id}` | Update customer profile | Yes |
+| DELETE | `/api/customer-profiles/{id}` | Delete customer profile (admin only) | Admin |
+| GET | `/api/customer-profiles/user/{userId}` | Get customer profile by user ID | Yes |
+
+### 💰 Loan Management
+
+| Method | Endpoint | Description | Auth Required |
+| :-- | :-- | :-- | :-- |
+| POST | `/api/loans` | Create new loan application (customer only) | Customer |
+| GET | `/api/loans` | Get all loans (admin only) | Admin |
+| GET | `/api/loans/my-loans` | Get current user's loans | Yes |
+| GET | `/api/loans/{id}` | Get loan by ID (admin or loan owner) | Yes |
+| PUT | `/api/loans/{id}` | Update loan (admin or loan owner) | Yes |
+| DELETE | `/api/loans/{id}` | Delete loan (admin only) | Admin |
+| PUT | `/api/loans/{id}/status` | Update loan status (admin only) | Admin |
+
+## 📦 Standard Response Structure
+```json
+{
+  "status": 200,
+  "data": { ... },
+  "message": "Descriptive message"
+}
+```
+
+## ⚠️ Error Codes
+- **400**: Bad request (validation errors)
+- **401**: Not authenticated or invalid token
+- **403**: Not authorized (insufficient permissions)
+- **404**: Resource not found
+- **409**: Conflict (e.g., duplicate email or profile)
+
+## 👥 Roles
+- **Admin:** Can manage all users, customer profiles, and loans.
+- **Customer:** Can manage own profile and loans.
+
+## 💡 Credit Scoring Logic
+
+The system calculates a score out of 100 based on:
+- EMI ≤ 40% of monthly income
+- Maximum 2 active loans
+- Loan amount optimization
+- Credit score consideration
+
+## 🔐 Sample JWT Tokens
+
+### Admin Token
+```jwt
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjYyNTI4Yzg1LWNlZjAtNDkyNy05MzMzLTExYTAyMDI4M2ExNCIsImVtYWlsIjoiYWRtaW5AZXhhbXBsZS5jb20iLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3NDY5NzQ0NjcsImV4cCI6MTc0NzA2MDg2N30.hy8jc950qt2RtVFQIt9LKTEBGHId_Zu1TOtcU2Nxd6I
+```
+
+### Customer Token
+```jwt
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImNmNDYxNjQ5LWEzMDYtNDA5MS04NjA5LThjNmYyMDY0OTIwZSIsImVtYWlsIjoiaXNoYW5pbmZvNTZAZ21haWwuY29tIiwicm9sZSI6ImN1c3RvbWVyIiwiaWF0IjoxNzQ2OTc0NzUwLCJleHAiOjE3NDcwNjExNTB9.UJLGOGYePA8KOWE3LaQibQSkBuc4XreVyp6V3UP28WU
+```
+
+## 🐳 Docker Support
+
+Build and run with Docker Compose:
+```bash
+docker-compose up --build
+```
+
+
+

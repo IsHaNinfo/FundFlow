@@ -7,7 +7,6 @@ import bcrypt from "bcrypt";
 export const createUser = async (userData) => {
     try {
         console.log(userData);
-        // Validate required fields
         const requiredFields = ['firstName', 'lastName', 'email', 'nic', 'phoneNumber', 'role', 'password'];
         for (const field of requiredFields) {
             if (!userData[field]) {
@@ -15,7 +14,6 @@ export const createUser = async (userData) => {
             }
         }
 
-        // Check if email already exists
         const existingUser = await userRepo.getUserByEmail(userData.email);
         if (existingUser) {
             throw new AppError('Email already exists', ApiResponse.HTTP_STATUS.CONFLICT);

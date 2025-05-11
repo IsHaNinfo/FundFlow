@@ -78,7 +78,6 @@ export const Loan = sequelize.define(
     }
 );
 
-// Define the relationship
 Loan.belongsTo(User, {
     foreignKey: 'userId',
     as: 'user'
