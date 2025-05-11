@@ -29,6 +29,7 @@ import { useState } from "react"
 import { toast } from "sonner"
 import { loanApi } from "@/services/api"
 import { ErrorMessage } from "@/components/ui/error-message"
+import { IconDownload } from "@tabler/icons-react"
 import {
     Dialog,
     DialogContent,
@@ -80,6 +81,8 @@ import {
     TabsList,
     TabsTrigger,
 } from "@/components/ui/tabs"
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
 
 type Loan = {
     id: string
@@ -123,6 +126,23 @@ export function LoanDataTable({ data }: { data: Loan[] }) {
     const removeFromTableData = (loanId: string) => {
         const newData = tableData.filter(loan => loan.id !== loanId)
         setTableData(newData)
+    }
+
+    // Add these new states for filters
+    const [statusFilter, setStatusFilter] = useState<string>("all")
+    const [scoreFilter, setScoreFilter] = useState<string>("all")
+
+    // Add this function to filter the data
+    const getFilteredData = () => {
+        return tableData.filter(loan => {
+            const statusMatch = statusFilter === "all" || loan.status === statusFilter
+            const scoreMatch = scoreFilter === "all" ||
+                (scoreFilter === "excellent" && loan.score >= 75) ||
+                (scoreFilter === "good" && loan.score >= 65 && loan.score < 75) ||
+                (scoreFilter === "fair" && loan.score >= 60 && loan.score < 65) ||
+                (scoreFilter === "poor" && loan.score < 60)
+            return statusMatch && scoreMatch
+        })
     }
 
     // Define columns inside the component to access the functions
@@ -185,7 +205,7 @@ export function LoanDataTable({ data }: { data: Loan[] }) {
                     try {
                         setError("")
                         setIsLoading(true)
-                        const updatedLoan = await loanApi.updateStatus(loan.id,  { status: newStatus })
+                        const updatedLoan = await loanApi.updateStatus(loan.id, { status: newStatus })
                         setShowStatusModal(false)
                         // Update the table data with the new values
                         updateTableData({
@@ -407,7 +427,7 @@ export function LoanDataTable({ data }: { data: Loan[] }) {
     })
 
     const table = useReactTable({
-        data: tableData,
+        data: getFilteredData(),
         columns,
         state: {
             sorting,
@@ -424,6 +444,98 @@ export function LoanDataTable({ data }: { data: Loan[] }) {
         getPaginationRowModel: getPaginationRowModel(),
         getSortedRowModel: getSortedRowModel(),
     })
+
+    // Add this function to generate PDF
+    const generatePDF = () => {
+        const doc = new jsPDF()
+
+        // Add logo (if you have one)
+        // doc.addImage(logo, 'PNG', 14, 10, 30, 10)
+
+        // Add title with custom styling
+        doc.setFontSize(20)
+        doc.setTextColor(41, 128, 185)
+        doc.text('Loan Report', 14, 15)
+
+        // Add subtitle
+        doc.setFontSize(12)
+        doc.setTextColor(100)
+        doc.text('FundFlow Loan Management System', 14, 22)
+
+        // Add date with custom styling
+        doc.setFontSize(10)
+        doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30)
+
+        // Add summary information
+        doc.setFontSize(10)
+        doc.text(`Total Loans: ${getFilteredData().length}`, 14, 37)
+        doc.text(`Total Amount: ${new Intl.NumberFormat("en-US", {
+            style: "currency",
+            currency: "LKR",
+        }).format(getFilteredData().reduce((sum, loan) => sum + parseFloat(loan.loanAmount), 0))}`, 14, 44)
+
+        // Generate table with more customization
+        autoTable(doc, {
+            head: [['Customer Name', 'Loan Amount', 'Duration', 'Monthly Income', 'Status', 'Credit Score', 'EMI']],
+            body: getFilteredData().map(loan => [
+                `${loan.user.firstName} ${loan.user.lastName}`,
+                new Intl.NumberFormat("en-US", {
+                    style: "currency",
+                    currency: "LKR",
+                }).format(parseFloat(loan.loanAmount)),
+                loan.durationMonths.toString(),
+                new Intl.NumberFormat("en-US", {
+                    style: "currency",
+                    currency: "LKR",
+                }).format(parseFloat(loan.monthlyIncome)),
+                loan.status,
+                loan.score.toString(),
+                new Intl.NumberFormat("en-US", {
+                    style: "currency",
+                    currency: "LKR",
+                }).format(parseFloat(loan.emi))
+            ]),
+            startY: 50,
+            styles: {
+                fontSize: 8,
+                cellPadding: 2,
+            },
+            headStyles: {
+                fillColor: [41, 128, 185],
+                textColor: 255,
+                fontSize: 9,
+                fontStyle: 'bold',
+            },
+            alternateRowStyles: {
+                fillColor: [245, 245, 245],
+            },
+            columnStyles: {
+                0: { cellWidth: 40 },
+                1: { cellWidth: 30 },
+                2: { cellWidth: 20 },
+                3: { cellWidth: 30 },
+                4: { cellWidth: 25 },
+                5: { cellWidth: 25 },
+                6: { cellWidth: 30 },
+            },
+        })
+
+        // Add footer
+        const pageCount = doc.internal.getNumberOfPages()
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i)
+            doc.setFontSize(8)
+            doc.text(
+                `Page ${i} of ${pageCount}`,
+                doc.internal.pageSize.width / 2,
+                doc.internal.pageSize.height - 10,
+                { align: 'center' }
+            )
+        }
+
+        // Save the PDF
+        doc.save('loan-report.pdf')
+    }
 
     return (
         <Tabs defaultValue="loans" className="w-full flex-col justify-start gap-6">
@@ -450,7 +562,43 @@ export function LoanDataTable({ data }: { data: Loan[] }) {
                     <TabsTrigger value="loans">All Loans</TabsTrigger>
 
                 </TabsList>
-                
+
+                {/* Add filter controls */}
+                <div className="flex gap-4">
+                    <Button
+                        onClick={generatePDF}
+                        variant="outline"
+                        className="flex items-center gap-2"
+                    >
+                        <IconDownload className="h-4 w-4" />
+                        Export PDF
+                    </Button>
+
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                        <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="Filter by status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Status</SelectItem>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="approved">Approved</SelectItem>
+                            <SelectItem value="rejected">Rejected</SelectItem>
+                        </SelectContent>
+                    </Select>
+
+                    <Select value={scoreFilter} onValueChange={setScoreFilter}>
+                        <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="Filter by credit score" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Scores</SelectItem>
+                            <SelectItem value="excellent">Excellent (750+)</SelectItem>
+                            <SelectItem value="good">Good (650-749)</SelectItem>
+                            <SelectItem value="fair">Fair (600-649)</SelectItem>
+                            <SelectItem value="poor">Poor (600)</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
             </div>
             <TabsContent value="loans" className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
                 <div className="overflow-hidden rounded-lg border">
