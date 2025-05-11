@@ -118,7 +118,7 @@ npm start
 
 ## 📚 API Documentation
 
-![Swagger UI](/assets/swagger.png)
+![Swagger UI](./frontend/assets/swagger.png)
 *API Documentation Interface*
 
 ### 👤 User Management
@@ -186,16 +186,7 @@ The system calculates a score out of 100 based on:
 - Loan amount optimization
 - Credit score consideration
 
-## 🔐 Sample JWT Tokens
 
-### Admin Token
-```jwt
-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjYyNTI4Yzg1LWNlZjAtNDkyNy05MzMzLTExYTAyMDI4M2ExNCIsImVtYWlsIjoiYWRtaW5AZXhhbXBsZS5jb20iLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3NDY5NzQ0NjcsImV4cCI6MTc0NzA2MDg2N30.hy8jc950qt2RtVFQIt9LKTEBGHId_Zu1TOtcU2Nxd6I
-```
-
-### Customer Token
-```jwt
-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImNmNDYxNjQ5LWEzMDYtNDA5MS04NjA5LThjNmYyMDY0OTIwZSIsImVtYWlsIjoiaXNoYW5pbmZvNTZAZ21haWwuY29tIiwicm9sZSI6ImN1c3RvbWVyIiwiaWF0IjoxNzQ2OTc0NzUwLCJleHAiOjE3NDcwNjExNTB9.UJLGOGYePA8KOWE3LaQibQSkBuc4XreVyp6V3UP28WU
 ```
 
 ## 🐳 Docker Support
