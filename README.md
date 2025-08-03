@@ -113,7 +113,7 @@ npm start
 
 # Frontend
 cd frontend
-npm start
+npm run dev
 ```
 
 ## 📚 API Documentation

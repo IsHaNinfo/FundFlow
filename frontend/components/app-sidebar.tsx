@@ -126,7 +126,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             >
               <a href="#" onClick={handleDashboardClick}>
                 <IconInnerShadowTop className="!size-5" />
-                <span className="text-base font-semibold">Fund Flow.</span>
+                <span className="text-base font-semibold">Loan Guard.</span>
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
